@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { UpdatePropertyCommand } from '@/commands'
 import type { IGraphicElement } from '.'
 import type { EditorHost } from '@/core'
@@ -29,6 +30,7 @@ export interface BaseGraphicElementOptions {
   resizable?: boolean
   zIndex?: number
   displayName?: string | null
+  parentId?: string | null
 }
 
 export abstract class BaseGraphicElement implements IGraphicElement {
@@ -105,6 +107,8 @@ export abstract class BaseGraphicElement implements IGraphicElement {
   public resizeAnchors: string[] | null = DEFAULT_ANCHORS
   /** 元素自定义显示名称。空字符串/null 时回退到 layer-manager.getElementDisplayName 的自动命名逻辑。 */
   public displayName: string | null = null
+  /** 父容器元素 id；无父级时为 null */
+  public parentId: string | null = null
   // host 在元素未加入 editor 时可能不存在，保持可选
 
   constructor(host: EditorHost, options: Partial<BaseGraphicElementOptions> = {}) {
@@ -123,6 +127,7 @@ export abstract class BaseGraphicElement implements IGraphicElement {
     // 显式传入时使用传入值，否则保持默认 0，由 ElementManagerPlugin 在 addElement 时统一赋值
     this.zIndex = options.zIndex ?? 0
     this.displayName = options.displayName ?? null
+    this.parentId = options.parentId ?? null
     this.host = host
     this.id = uuidv4()
   }
@@ -168,6 +173,7 @@ export abstract class BaseGraphicElement implements IGraphicElement {
     // 缺失 zIndex 时兼容旧 JSON，按 0 处理（导入流程会做归一化）
     this.zIndex = data.zIndex ?? 0
     this.displayName = data.displayName ?? data.name ?? null
+    this.parentId = (data.parentId as string | null | undefined) ?? null
   }
 
   serialize(): {
@@ -186,6 +192,7 @@ export abstract class BaseGraphicElement implements IGraphicElement {
     resizable: boolean
     zIndex: number
     displayName: string | null
+    parentId: string | null
     [key: string]: any
   } {
     return {
@@ -204,6 +211,7 @@ export abstract class BaseGraphicElement implements IGraphicElement {
       resizable: this.resizable,
       zIndex: this.zIndex,
       displayName: this.displayName,
+      parentId: this.parentId,
     }
   }
   // 获取转换的属性

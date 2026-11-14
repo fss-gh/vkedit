@@ -27,6 +27,13 @@
     >
     </VkInputNumber>
   </div>
+  <div>
+    <Label>线条类型</Label>
+    <VkSelect :model-value="element.lineType" @update:model-value="onLineTypeChange">
+      <option value="solid">实线</option>
+      <option value="dashed">虚线</option>
+    </VkSelect>
+  </div>
   <div class="vkedit-property__col-full">
     <VkColorPicker
       :model-value="element.stroke"
@@ -39,7 +46,7 @@
 <script setup lang="ts">
 import type { EditorHost } from '@/core'
 import type { LineElement } from './line'
-import { VkInputNumber, VkInputNumberMM, VkColorPicker } from '@/components/ui'
+import { VkInputNumber, VkInputNumberMM, VkSelect, VkColorPicker } from '@/components/ui'
 import { usePropertyCommand } from '@/hooks'
 
 export interface Props {
@@ -49,6 +56,10 @@ export interface Props {
 }
 const { element, host, selection } = defineProps<Props>()
 const { batchUpdateProperty } = usePropertyCommand(host)
+
+function onLineTypeChange(value: string) {
+  batchUpdateProperty(selection, 'lineType', value)
+}
 </script>
 
 <style scoped></style>

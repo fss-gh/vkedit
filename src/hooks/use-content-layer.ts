@@ -34,11 +34,14 @@ export function useContentLayer(host: EditorHost) {
     const manager = host.getPlugin('graphic-registry-plugin') as GraphicRegistryPlugin
     if (manager?.getOrderedElements) {
       // 按 zIndex 升序：底层在前，先渲染的在底部，后渲染的在顶部叠压
-      elements.value = manager.getOrderedElements('ascending')
+      // 带 parentId 的子元素由父容器在自身 Shape 内渲染，不在此顶层渲染
+      elements.value = manager
+        .getOrderedElements('ascending')
+        .filter((element) => !element.parentId)
     } else {
       const a = manager?.elements.values()
       if (a) {
-        elements.value = Array.from(a)
+        elements.value = Array.from(a).filter((element) => !element.parentId)
       }
     }
   }

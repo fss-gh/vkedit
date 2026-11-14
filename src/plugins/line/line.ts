@@ -7,14 +7,16 @@ import type { EditorHost } from '@/core'
 
 export interface LineOptions extends BaseGraphicElementOptions {
   stroke?: string
+  lineType?: 'solid' | 'dashed'
   xmm?: number
   ymm?: number
 }
 
-// 直线元素实现：用矩形填充模拟线条，配合透明命中层保证细线在任意缩放下可选中
+// 直线元素实现：用 v-line 绘制可见线条（支持实线/虚线），配合透明命中层保证细线在任意缩放下可选中
 export class LineElement extends BaseGraphicElement {
   public type = 'line'
   public stroke: string = 'black'
+  public lineType: 'solid' | 'dashed' = 'solid'
   // 把 width 当做线长，height 当做线宽（粗细）
 
   // 屏幕空间最小命中厚度（像素），与 zoom 无关
@@ -36,6 +38,7 @@ export class LineElement extends BaseGraphicElement {
       resizable: options.resizable,
     })
     this.stroke = options.stroke ?? this.stroke
+    this.lineType = options.lineType ?? this.lineType
   }
 
   // 命中矩形高度（内容空间像素）：保证屏幕上可点击厚度不低于 MIN_HIT_SCREEN_PX
@@ -57,14 +60,15 @@ export class LineElement extends BaseGraphicElement {
     }
   }
 
-  // 可见矩形：stroke 颜色作为填充，尺寸为线长×线宽
-  public get visibleRectConfig() {
+
+  // 可见线条：使用 v-line 绘制，strokeWidth 对应线宽，支持实线/虚线
+  public get visibleLineConfig() {
     return {
-      width: this.width,
-      height: this.height,
-      fill: this.stroke,
-      x: 0,
-      y: 0,
+      points: [0, this.height / 2, this.width, this.height / 2],
+      stroke: this.stroke,
+      strokeWidth: this.height,
+      lineCap: 'butt' as const,
+      dash: this.lineType === 'dashed' ? [4, 2] : undefined,
     }
   }
 
@@ -80,15 +84,17 @@ export class LineElement extends BaseGraphicElement {
     }
   }
 
-  deserialize(data: any): void {
+  deserialize(data: Record<string, unknown>): void {
     super.deserialize(data)
-    this.stroke = data.stroke
+    this.stroke = (data.stroke as string) ?? this.stroke
+    this.lineType = (data.lineType as string) === 'dashed' ? 'dashed' : 'solid'
   }
 
   serialize() {
     return {
       ...super.serialize(),
       stroke: this.stroke,
+      lineType: this.lineType,
     }
   }
 }
@@ -100,6 +106,6 @@ export class LinePlugin extends GraphicPlugin<LineElement> {
   public graphicElement = LineElement
   public shapeComponent = Shape
   public iconComponent = IconPenSize1
-  public typeDisplayName = '线条'
+  public typeDisplayName = '直线'
   public propertyPanel = PropertyPanel
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { BasePlugin } from '@/types/base-plugin'
 import type { IGraphicElement } from '@/types'
 import type { GraphicRegistryPlugin } from '@/plugins/graphic-registry'
@@ -10,7 +11,6 @@ export interface PointMM {
 }
 
 interface ClipboardState {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   snapshots: any[]
   origin: PointMM
 }
@@ -109,16 +109,32 @@ export class ClipboardPlugin extends BasePlugin {
     const elementManager = this.host.getPlugin('graphic-registry-plugin') as GraphicRegistryPlugin
     const newElements: IGraphicElement[] = []
     const newIds: string[] = []
+    const idMap = new Map<string, string>()
 
     for (const snapshot of this.state.snapshots) {
       const el = elementManager.createElement(snapshot.type) as any
       el.deserialize(snapshot)
       el.id = crypto.randomUUID?.() ?? this.uuidFallback()
       el.displayName = null
+      idMap.set(snapshot.id, el.id)
       el.xmm = snapshot.xmm + delta.x
       el.ymm = snapshot.ymm + delta.y
       newElements.push(el)
       newIds.push(el.id)
+    }
+
+    // 重映射嵌套关系：仅复制容器时清空子元素；容器与子元素一起复制时指向新子元素
+    for (const el of newElements) {
+      if (el.parentId) {
+        el.parentId = idMap.get(el.parentId) ?? null
+      }
+      const childIds = (el as { childIds?: unknown }).childIds
+      if (Array.isArray(childIds)) {
+        const containerLike = el as unknown as { childIds: string[] }
+        containerLike.childIds = childIds
+          .map((id) => idMap.get(id as string))
+          .filter((id): id is string => Boolean(id))
+      }
     }
 
     const commands = newElements.map((el) => new AddElementCommand(this.host!, el))
@@ -144,12 +160,28 @@ export class ClipboardPlugin extends BasePlugin {
 
     const newElements: IGraphicElement[] = []
     const newIds: string[] = []
+    const idMap = new Map<string, string>()
     for (const src of elements) {
       const cloned = src.clone() as any
+      idMap.set(src.id, cloned.id)
       cloned.xmm = (src as any).xmm + deltaMM.x
       cloned.ymm = (src as any).ymm + deltaMM.y
       newElements.push(cloned)
       newIds.push(cloned.id)
+    }
+
+    // 重映射嵌套关系：仅克隆子元素时解除父级；容器与子元素一起克隆时保持嵌套
+    for (const el of newElements) {
+      if (el.parentId) {
+        el.parentId = idMap.get(el.parentId) ?? null
+      }
+      const childIds = (el as { childIds?: unknown }).childIds
+      if (Array.isArray(childIds)) {
+        const containerLike = el as unknown as { childIds: string[] }
+        containerLike.childIds = childIds
+          .map((id) => idMap.get(id as string))
+          .filter((id): id is string => Boolean(id))
+      }
     }
 
     const commands = newElements.map((el) => new AddElementCommand(this.host!, el))

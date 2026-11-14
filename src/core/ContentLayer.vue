@@ -36,13 +36,22 @@ const {
   updateCanvas,
 } = useContentLayer(host)
 
+const handleElementUpdated = (event: { updatedProperties?: string[] }) => {
+  // parentId 变化会改变元素是否属于顶层渲染，需要重新构建顶层元素列表
+  if (event.updatedProperties?.includes('parentId')) {
+    initElements()
+  } else {
+    updateCanvas()
+  }
+}
+
 onMounted(() => {
   initElements()
   // 添加或删除图形时触发更新elements
   host.on('element:removed', initElements)
   host.on('element:added', initElements)
   host.on('element:transformed', initElements)
-  host.on('element:updated', updateCanvas)
+  host.on('element:updated', handleElementUpdated)
   host.on('element:visibility-change', updateCanvas)
   host.on('elements:align', updateCanvas)
   host.on('elements:distribute', updateCanvas)
@@ -50,7 +59,9 @@ onMounted(() => {
   host.on('layer:order-changed', initElements)
 
   // 将内容图层赋值给宿主  以便其他插件使用
+  // eslint-disable-next-line vue/no-mutating-props -- host 是编辑器宿主单例，赋值其引用是既定设计
   host.contentLayer = contentLayerRef.value
+  // eslint-disable-next-line vue/no-mutating-props -- host 是编辑器宿主单例，赋值其引用是既定设计
   host.contentGroup = groupRef.value
 })
 </script>

@@ -25,6 +25,7 @@
         <SelectionLayer :host="host"></SelectionLayer>
         <GuideLayer :host="host"></GuideLayer>
         <TransformOverlay :host="host"></TransformOverlay>
+        <CurveEditOverlay :host="host"></CurveEditOverlay>
       </ContentLayer>
       <RulerLayer :host="host"></RulerLayer>
     </v-stage>
@@ -35,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable vue/no-mutating-props */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useElementSize } from '@vueuse/core'
 import type { EditorHost } from '@/core'
@@ -49,6 +51,7 @@ import GuideLayer from './GuideLayer.vue'
 import ContextMenu from './ContextMenu.vue'
 import HelpGuide from './HelpGuide.vue'
 import TransformOverlay from './TransformOverlay.vue'
+import CurveEditOverlay from './CurveEditOverlay.vue'
 
 interface Props {
   host: EditorHost

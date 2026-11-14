@@ -1,4 +1,5 @@
 <template>
+  <DisplayNameProperty :host="host" :element="element" :selection="selection" />
   <div class="vkedit-property__col-full">二维码属性</div>
   <div class="vkedit-property__col-full">
     <VkLabel>内容</VkLabel>
@@ -58,6 +59,7 @@ import {
   VkColorPicker,
 } from '../../components'
 import { useReadabilityWarning } from '@/utils/readability'
+import { DisplayNameProperty } from '@/components'
 
 export interface Props {
   host: EditorHost
@@ -75,7 +77,7 @@ const readabilityWarning = useReadabilityWarning({
   background: backgroundRef,
 })
 
-function onContentChange(value: any) {
+function onContentChange(value: string | number) {
   batchUpdateProperty(selection, 'content', value)
 }
 

@@ -41,6 +41,7 @@ export class TextElement extends BaseGraphicElement {
       locked: options.locked,
       draggable: options.draggable,
       resizable: options.resizable,
+      displayName: options.displayName,
     })
     this.text = options.text ?? this.text
     this.fontSize = options.fontSize ?? this.fontSize

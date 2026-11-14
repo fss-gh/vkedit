@@ -45,6 +45,7 @@ export class BarcodeElement extends BaseGraphicElement {
       locked: options.locked,
       draggable: options.draggable,
       resizable: options.resizable,
+      displayName: options.displayName,
     })
     this.content = options.content ?? this.content
     this.format = options.format ?? this.format

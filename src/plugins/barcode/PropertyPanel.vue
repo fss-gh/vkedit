@@ -1,4 +1,5 @@
 <template>
+  <DisplayNameProperty :host="host" :element="element" :selection="selection" />
   <div class="vkedit-property__col-full">条码属性</div>
   <div class="vkedit-property__col-full">
     <label class="vkedit-property__label">格式</label>
@@ -90,6 +91,7 @@ import {
   VkColorPicker,
 } from '@/components/ui'
 import { useReadabilityWarning } from '@/utils/readability'
+import { DisplayNameProperty } from '@/components'
 
 export interface Props {
   host: EditorHost
@@ -107,18 +109,18 @@ const readabilityWarning = useReadabilityWarning({
   background: backgroundRef,
 })
 
-function onContentChange(value: any) {
+function onContentChange(value: string | number) {
   batchUpdateProperty(selection, 'content', value)
 }
 
-function onFormatChange(value: any) {
+function onFormatChange(value: string | number) {
   batchUpdateProperty(selection, 'format', value)
 }
 
-function onFontSizeMMUpdate(value: any) {
+function onFontSizeMMUpdate(value: number) {
   batchUpdateProperty(selection, 'fontSizeMM', value)
 }
-function onDisplayValueUpdate(value: any) {
+function onDisplayValueUpdate(value: boolean) {
   batchUpdateProperty(selection, 'displayValue', value)
 }
 </script>

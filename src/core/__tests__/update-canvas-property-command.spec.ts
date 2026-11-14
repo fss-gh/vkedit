@@ -23,6 +23,7 @@ function snapshot(host: EditorHost): CanvasPropertySnapshot {
     height: host.status.height,
     wmm: host.status.wmm,
     hmm: host.status.hmm,
+    showGrid: host.status.showGrid,
   }
 }
 

@@ -11,6 +11,7 @@ export interface RectOptions extends BaseGraphicElementOptions {
   fill?: string
   stroke?: string
   strokeWidthMM?: number
+  cornerRadiusMM?: number
   xmm?: number
   ymm?: number
 }
@@ -21,6 +22,7 @@ export class RectElement extends BaseGraphicElement {
   public fill: string = ''
   public stroke: string = 'black'
   public strokeWidthMM: number = 0.2
+  public cornerRadiusMM: number = 0
 
   constructor(host: EditorHost, options: Partial<RectOptions> = {}) {
     // 支持传入 xmm/ymm 或 x/y
@@ -40,10 +42,15 @@ export class RectElement extends BaseGraphicElement {
     this.fill = options.fill ?? this.fill
     this.stroke = options.stroke ?? this.stroke
     this.strokeWidthMM = options.strokeWidthMM ?? this.strokeWidthMM
+    this.cornerRadiusMM = options.cornerRadiusMM ?? this.cornerRadiusMM
   }
 
   public get strokeWidth() {
     return Math.round(this.strokeWidthMM * this.host.status.dpm)
+  }
+
+  public get cornerRadius() {
+    return Math.max(0, Math.round(this.cornerRadiusMM * this.host.status.dpm))
   }
 
   public get config() {
@@ -52,14 +59,16 @@ export class RectElement extends BaseGraphicElement {
       fill: this.fill,
       stroke: this.stroke,
       strokeWidth: this.strokeWidth,
+      cornerRadius: this.cornerRadius,
     }
   }
 
-  deserialize(data: any): void {
+  deserialize(data: Record<string, unknown>): void {
     super.deserialize(data)
-    this.fill = data.fill
-    this.stroke = data.stroke
-    this.strokeWidthMM = data.strokeWidthMM
+    this.fill = (data.fill as string) ?? ''
+    this.stroke = (data.stroke as string) ?? 'black'
+    this.strokeWidthMM = (data.strokeWidthMM as number) ?? 0.2
+    this.cornerRadiusMM = (data.cornerRadiusMM as number) ?? 0
   }
 
   serialize() {
@@ -68,6 +77,7 @@ export class RectElement extends BaseGraphicElement {
       fill: this.fill,
       stroke: this.stroke,
       strokeWidthMM: this.strokeWidthMM,
+      cornerRadiusMM: this.cornerRadiusMM,
     }
   }
 }

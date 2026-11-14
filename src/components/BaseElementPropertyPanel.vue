@@ -109,9 +109,9 @@ const { element, host, selection } = defineProps<Props>()
 const layerPlugin = host.getPlugin('layer-manager-plugin') as import('@/plugins/layer-manager/layer-manager').LayerManagerPlugin
 
 const displayName = computed(() => {
-  const custom = (element as any).name
+  const custom = element.displayName
   if (typeof custom === 'string' && custom.trim().length > 0) return custom
-  return layerPlugin.getElementDisplayName(element as any)
+  return layerPlugin.getElementDisplayName(element)
 })
 
 const { hostState } = useHostState(host)
@@ -134,8 +134,8 @@ watch(
 function handleNameCommit() {
   const raw = nameInput.value.trim()
   const next = raw.length === 0 ? null : raw.slice(0, 50)
-  if ((element as any).name === next) return
-  updateProperty(element as any, 'name', next)
+  if (element.displayName === next) return
+  updateProperty(element, 'displayName', next)
   nameInput.value = next ?? displayName.value
 }
 </script>

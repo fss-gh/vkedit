@@ -1,10 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { EditorHost } from '@/core'
 import type { IGraphicElement } from '@/types'
 import { useZoom } from '@/hooks/use-zoom'
 import { cssColorVar } from '@/utils/css-var'
 import {
-  getElementOBBFromSource,
+  getElementOBBFromNode,
+  getElementParentRotation,
+  toElementLocalPoint,
   obbToViewport,
   getSelectionUnionRect,
   rectToViewport,
@@ -90,7 +93,7 @@ export function useTransformOverlay(host: EditorHost) {
     if (elements.length === 1) {
       const el = elements[0]
       const node = getElementNode(el.id)
-      const obb = getElementOBBFromSource(el, node)
+      const obb = getElementOBBFromNode(el, node)
       const obbVp = obbToViewport(obb, vp)
 
       const enabledAnchors = resolveEnabledAnchors(el)
@@ -146,6 +149,24 @@ export function useTransformOverlay(host: EditorHost) {
       elements.map((e) => {
         const n = getElementNode(e.id)
         if (n) {
+          if (
+            e.parentId &&
+            typeof n.getAbsolutePosition === 'function' &&
+            typeof n.getAbsoluteRotation === 'function' &&
+            typeof n.getAbsoluteScale === 'function'
+          ) {
+            const absPosition = n.getAbsolutePosition()
+            const absScale = n.getAbsoluteScale()
+            return {
+              x: absPosition.x,
+              y: absPosition.y,
+              width: e.width,
+              height: e.height,
+              rotation: n.getAbsoluteRotation(),
+              scaleX: absScale.x,
+              scaleY: absScale.y,
+            }
+          }
           return {
             x: n.x(),
             y: n.y(),
@@ -383,7 +404,7 @@ export function useTransformOverlay(host: EditorHost) {
       if (!enabledAnchors && !canMove && !showRotate) return
 
       const node = getElementNode(element.id)
-      obbContent = getElementOBBFromSource(element, node)
+      obbContent = getElementOBBFromNode(element, node)
       const obbVp = obbToViewport(obbContent, vp())
       zone = hitTestTransformOverlay(pointer, {
         mode: 'single',
@@ -552,14 +573,15 @@ export function useTransformOverlay(host: EditorHost) {
       const newX = s.center.x - (lx * cos - ly * sin)
       const newY = s.center.y - (lx * sin + ly * cos)
 
-      el.rotation = newRot
-      el.x = newX
-      el.y = newY
       const node = getElementNode(el.id)
+      el.rotation = newRot - getElementParentRotation(el, node)
+      const localOrigin = toElementLocalPoint(el, node, { x: newX, y: newY })
+      el.x = localOrigin.x
+      el.y = localOrigin.y
       if (node) {
-        node.rotation(newRot)
-        node.x(newX)
-        node.y(newY)
+        node.rotation(el.rotation)
+        node.x(localOrigin.x)
+        node.y(localOrigin.y)
       }
 
       angleLabel.value = {
@@ -585,13 +607,14 @@ export function useTransformOverlay(host: EditorHost) {
     const node = getElementNode(el.id)
     el.width = result.width
     el.height = result.height
-    el.x = result.x
-    el.y = result.y
+    const localOrigin = toElementLocalPoint(el, node, { x: result.x, y: result.y })
+    el.x = localOrigin.x
+    el.y = localOrigin.y
     el.scaleX = 1
     el.scaleY = 1
     if (node) {
-      node.x(result.x)
-      node.y(result.y)
+      node.x(localOrigin.x)
+      node.y(localOrigin.y)
       node.width(result.width)
       node.height(result.height)
       node.scaleX(1)
@@ -762,7 +785,7 @@ export function useTransformOverlay(host: EditorHost) {
     if (els.length === 1) {
       const el = els[0]
       const node = getElementNode(el.id)
-      const obbContent = getElementOBBFromSource(el, node)
+      const obbContent = getElementOBBFromNode(el, node)
       const obbVp = obbToViewport(obbContent, vp())
       const enabled = resolveEnabledAnchors(el)
       const canMove = el.draggable !== false && !el.locked

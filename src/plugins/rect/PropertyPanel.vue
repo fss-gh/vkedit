@@ -2,6 +2,34 @@
   <div class="vkedit-property__title">矩形属性</div>
   <div></div>
   <div>
+    <VkLabel>宽度</VkLabel>
+    <VkInputNumberMM
+      :model-value="element.wmm"
+      :min="1"
+      @update:model-value="(value) => batchUpdateProperty(selection, 'wmm', value)"
+    >
+    </VkInputNumberMM>
+  </div>
+  <div>
+    <VkLabel>高度</VkLabel>
+    <VkInputNumberMM
+      :model-value="element.hmm"
+      :min="1"
+      @update:model-value="(value) => batchUpdateProperty(selection, 'hmm', value)"
+    >
+    </VkInputNumberMM>
+  </div>
+  <div>
+    <VkLabel>圆角</VkLabel>
+    <VkInputNumberMM
+      :model-value="element.cornerRadiusMM"
+      :min="0"
+      :step="0.1"
+      @update:model-value="(value) => batchUpdateProperty(selection, 'cornerRadiusMM', value)"
+    >
+    </VkInputNumberMM>
+  </div>
+  <div>
     <VkLabel>边框粗细</VkLabel>
     <VkInputNumberMM
       :model-value="element.strokeWidthMM"

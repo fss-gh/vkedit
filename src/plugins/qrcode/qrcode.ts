@@ -36,6 +36,7 @@ export class QrcodeElement extends BaseGraphicElement {
       locked: options.locked,
       draggable: options.draggable,
       resizable: options.resizable,
+      displayName: options.displayName,
     })
     this.content = options.content ?? this.content
     this.foreground = options.foreground ?? this.foreground

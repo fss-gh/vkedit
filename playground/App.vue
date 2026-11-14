@@ -16,6 +16,8 @@ import {
   TextPlugin,
   QrcodePlugin,
   BarcodePlugin,
+  ImagePlugin,
+  CurvePlugin,
   Vkedit,
 } from '@/index'
 import { LinePlugin } from '@/plugins/line'
@@ -29,6 +31,8 @@ host
   .installPlugin('qr-plugin', QrcodePlugin)
   .installPlugin('barcode-plugin', BarcodePlugin)
   .installPlugin('line-plugin', LinePlugin)
+  .installPlugin('image-plugin', ImagePlugin)
+  .installPlugin('curve-plugin', CurvePlugin)
 
 onMounted(() => {
   host.on('stage:dblclick', (event) => {

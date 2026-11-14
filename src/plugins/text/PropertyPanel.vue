@@ -1,4 +1,5 @@
 <template>
+  <DisplayNameProperty :host="host" :element="element" :selection="selection" />
   <div class="vkedit-property__title">文本属性</div>
   <TextProperty
     :text="element.text"
@@ -15,7 +16,7 @@
 <script setup lang="ts">
 import type { EditorHost } from '@/core'
 import type { TextElement } from './text'
-import TextProperty from '@/components/TextProperty.vue'
+import { TextProperty, DisplayNameProperty } from '@/components'
 import { usePropertyCommand } from '@/hooks'
 
 export interface Props {

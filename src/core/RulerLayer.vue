@@ -44,7 +44,7 @@ const {
 
 const { hostState } = useHostState(host)
 
-const { contentX, contentY, zoom } = useZoom(host)
+const { contentHeight, contentWidth, contentX, contentY, zoom } = useZoom(host)
 
 // 获取舞台宽高
 const { width, height } = useStage(host)
@@ -62,7 +62,7 @@ watch(
 )
 
 // 定义刻度间距最大最小值 避免过密或过稀
-const minSpacing = 10
+const minSpacing = 1
 // 1mm刻度间距
 const mm1Spacing = computed(() => hostState.dpm * zoom.value)
 // 五毫米刻度间距
@@ -105,12 +105,41 @@ function strokeTicks(
   context.stroke()
 }
 
+// 辅助网格线层级：与标尺刻度同源，随缩放自动选择，避免网格过密
+function gridLevel(
+  sp1: number,
+  sp5: number,
+  sp10: number,
+  tick1: string,
+  tick5: string,
+  tick10: string,
+) {
+  const minGridSpacing = 8
+  if (sp1 >= minGridSpacing) return { step: sp1, color: tick1 }
+  if (sp5 >= minGridSpacing) return { step: sp5, color: tick5 }
+  return { step: sp10, color: tick10 }
+}
+
 // 上标尺刻度绘制函数
 const upSceneFunc = (context: konva.Context, shape: konva.Shape) => {
   const { tick1, tick5, tick10, text, font } = rulerColors()
   const sp1 = mm1Spacing.value
   const sp5 = mm5Spacing.value
   const sp10 = mm10Spacing.value
+
+  // 纵向辅助网格线（先画网格，再画刻度与数字，保证数字不被盖住）
+  if (hostState.showGrid) {
+    const grid = gridLevel(sp1, sp5, sp10, tick1, tick5, tick10)
+    strokeTicks(context, grid.color, () => {
+      const top = Math.max(contentY.value, rulerHeight)
+      const bottom = contentY.value + contentHeight.value
+      const right = contentX.value + contentWidth.value
+      for (let x = contentX.value; x <= right + 0.001; x += grid.step) {
+        context.moveTo(x, top)
+        context.lineTo(x, bottom)
+      }
+    })
+  }
 
   // 1mm
   if (sp1 >= minSpacing) {
@@ -199,6 +228,20 @@ const leftSceneFunc = (context: konva.Context, shape: konva.Shape) => {
   const sp1 = mm1Spacing.value
   const sp5 = mm5Spacing.value
   const sp10 = mm10Spacing.value
+
+  // 横向辅助网格线（先画网格，再画刻度与数字，保证数字不被盖住）
+  if (hostState.showGrid) {
+    const grid = gridLevel(sp1, sp5, sp10, tick1, tick5, tick10)
+    strokeTicks(context, grid.color, () => {
+      const left = Math.max(contentX.value, rulerHeight)
+      const right = contentX.value + contentWidth.value
+      const bottom = contentY.value + contentHeight.value
+      for (let y = contentY.value; y <= bottom + 0.001; y += grid.step) {
+        context.moveTo(left, y)
+        context.lineTo(right, y)
+      }
+    })
+  }
 
   if (sp1 >= minSpacing) {
     strokeTicks(context, tick1, () => {

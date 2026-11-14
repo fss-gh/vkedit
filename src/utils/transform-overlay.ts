@@ -268,14 +268,19 @@ export function hitTestTransformOverlay(
  * - name/id 包含 'transform-overlay' → true
  * - 兼容：className === 'Transformer' → true（防御残留）
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isClickOnTransformOverlay(event: { target?: any }): boolean {
   let node = event?.target
   while (node) {
     const name = typeof node.name === 'function' ? node.name() : node.name
     const id = typeof node.id === 'function' ? node.id() : node.id
     if (
-      (typeof name === 'string' && name.includes('transform-overlay')) ||
-      (typeof id === 'string' && id.includes('transform-overlay'))
+      (typeof name === 'string' &&
+        (name.includes('transform-overlay') ||
+          name.includes('curve-edit-overlay'))) ||
+      (typeof id === 'string' &&
+        (id.includes('transform-overlay') ||
+          id.includes('curve-edit-overlay')))
     ) {
       return true
     }

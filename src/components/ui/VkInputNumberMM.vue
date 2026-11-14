@@ -5,7 +5,7 @@
       <input
         v-if="!isEdit"
         class="vkedit-input-mm__display"
-        :value="`${displayValue} mm`"
+        :value="`${displayValue}${unit ? ` ${unit}` : ''}`"
         readonly
         @mousedown.prevent="startEdit"
       />
@@ -33,8 +33,10 @@ const props = withDefaults(defineProps<{
   modelValue: number
   step?: number
   min?: number
+  unit?: string
 }>(), {
   step: 0.1,
+  unit: 'mm',
 })
 
 const emit = defineEmits<{

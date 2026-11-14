@@ -37,13 +37,20 @@
       :dpm="hostState.dpm"
     ></VkInputMM>
   </div>
+  <div>
+    <VkLabel>显示辅助网格线</VkLabel>
+    <VkSwitch
+      :model-value="hostState.showGrid"
+      @update:model-value="(value) => updateCanvasProperty('showGrid', value)"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
 import type { BaseGraphicElement } from '@/types'
 import type { EditorHost } from '@/core'
 import { computed } from 'vue'
-import { VkLabel, VkInputMM, VkInputNumber } from '@/components/ui'
+import { VkLabel, VkInputMM, VkInputNumber, VkSwitch } from '@/components/ui'
 import { useCanvasPropertyCommand } from '@/hooks'
 
 interface Props {

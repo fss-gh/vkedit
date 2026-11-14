@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { IGraphicElement } from '@/types'
 import type { AABB } from '@/utils/geometry'
 import { getElementAABB, unionAABB } from '@/utils/geometry'
@@ -113,6 +114,85 @@ export function getElementOBBFromSource(
     scaleX: element.scaleX,
     scaleY: element.scaleY,
   })
+}
+
+export function getElementOBBFromNode(
+  element: IGraphicElement,
+  node: {
+    getAbsolutePosition?: () => { x: number; y: number }
+    getAbsoluteScale?: () => { x: number; y: number }
+    getAbsoluteRotation?: () => number
+  } | null | undefined,
+): OBB {
+  if (element.parentId && node?.getAbsolutePosition) {
+    const absPosition = node.getAbsolutePosition()
+    const absScale = node.getAbsoluteScale?.() ?? { x: 1, y: 1 }
+    const absRotation = node.getAbsoluteRotation?.() ?? element.rotation
+    return getElementOBB({
+      x: absPosition.x,
+      y: absPosition.y,
+      width: element.width,
+      height: element.height,
+      rotation: absRotation,
+      scaleX: absScale.x,
+      scaleY: absScale.y,
+    })
+  }
+  return getElementOBB({
+    x: element.x,
+    y: element.y,
+    width: element.width,
+    height: element.height,
+    rotation: element.rotation,
+    scaleX: element.scaleX,
+    scaleY: element.scaleY,
+  })
+}
+
+export function getElementParentOrigin(
+  element: IGraphicElement,
+  node: {
+    getParent?: () => { getAbsoluteTransform?: () => { point: (p: { x: number; y: number }) => { x: number; y: number } } } | null
+    getStage?: () => unknown | null
+  } | null | undefined,
+): { x: number; y: number } | null {
+  if (!element.parentId || !node?.getParent) return null
+  const parent = node.getParent()
+  if (!parent || parent === node.getStage?.()) return null
+  const transform = parent.getAbsoluteTransform?.()
+  if (!transform) return null
+  return transform.point({ x: 0, y: 0 })
+}
+
+export function toElementLocalPoint(
+  element: IGraphicElement,
+  node: {
+    getParent?: () => {
+      getAbsoluteTransform?: () => {
+        copy?: () => { invert?: () => { point: (p: { x: number; y: number }) => { x: number; y: number } } }
+      }
+    } | null
+    getStage?: () => unknown | null
+  } | null | undefined,
+  point: { x: number; y: number },
+): { x: number; y: number } {
+  if (!element.parentId || !node?.getParent) return point
+  const parent = node.getParent()
+  if (!parent || parent === node.getStage?.()) return point
+  const transform = parent.getAbsoluteTransform?.()
+  const inverted = transform?.copy?.().invert?.()
+  if (!inverted) return point
+  return inverted.point(point)
+}
+
+export function getElementParentRotation(
+  element: IGraphicElement,
+  node: {
+    getAbsoluteRotation?: () => number
+  } | null | undefined,
+): number {
+  if (!element.parentId || !node?.getAbsoluteRotation) return 0
+  return node.getAbsoluteRotation() - (element.rotation || 0)
 }
 
 export function obbToViewport(obb: OBB, vp: ViewportTransform): OBB {

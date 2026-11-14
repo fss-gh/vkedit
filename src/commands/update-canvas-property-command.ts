@@ -3,7 +3,7 @@ import type { IEditorState } from '@/types'
 import type { EditorHost } from '@/core'
 import type { ICommand } from './i-command'
 
-export type CanvasPropertyPath = 'dpm' | 'width' | 'height'
+export type CanvasPropertyPath = 'dpm' | 'width' | 'height' | 'showGrid'
 
 export interface CanvasPropertySnapshot {
   dpm: number
@@ -11,6 +11,7 @@ export interface CanvasPropertySnapshot {
   height: number
   wmm: number
   hmm: number
+  showGrid: boolean
 }
 
 export class UpdateCanvasPropertyCommand extends BaseCommand {

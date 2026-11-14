@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Component } from 'vue'
 import type { EditorHost } from '@/core'
 
@@ -38,6 +39,8 @@ export interface IGraphicElement {
   /** 元素自定义显示名称。空字符串/null 时回退到 layer-manager.getElementDisplayName 的自动命名逻辑。 */
   displayName?: string | null
   resizeAnchors?: string[] | null
+  /** 父容器元素 id；存在时表示该元素作为父元素的子元素渲染 */
+  parentId?: string | null
   getBoundingBox(): BoundingBox
   clone(): IGraphicElement
   serialize(): any
