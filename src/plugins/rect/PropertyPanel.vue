@@ -53,13 +53,40 @@
       @update:model-value="(value) => handleFillChange(value)"
     />
   </div>
+  <div class="vkedit-property__col-full">
+    <VkLabel>背景图片</VkLabel>
+    <div class="vkedit-rect-property__row">
+      <VkInput
+        class="vkedit-rect-property__input"
+        :model-value="element.backgroundImage"
+        placeholder="图片 URL 或 data URL"
+        @update:model-value="onBackgroundImageChange"
+      />
+      <VkButton size="sm" variant="outline" @click="openFilePicker">上传</VkButton>
+      <VkButton
+        v-if="element.backgroundImage"
+        size="sm"
+        variant="outline"
+        @click="clearBackgroundImage"
+      >
+        清除
+      </VkButton>
+    </div>
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/*"
+      class="vkedit-rect-property__file-input"
+      @change="onFileChange"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { EditorHost } from '@/core'
 import type { RectElement } from './rect'
-import { VkLabel, VkInputNumberMM, VkColorPicker } from '@/components/ui'
+import { VkButton, VkColorPicker, VkInput, VkInputNumberMM, VkLabel } from '@/components/ui'
 import { usePropertyCommand } from '@/hooks/use-property-command'
 
 export interface Props {
@@ -82,6 +109,53 @@ function handleFillChange(value: string | null) {
     batchUpdateProperty(selection, 'fill', value)
   }
 }
+
+const fileInput = ref<HTMLInputElement>()
+
+function onBackgroundImageChange(value: string | number) {
+  batchUpdateProperty(selection, 'backgroundImage', String(value ?? ''))
+}
+
+function openFilePicker() {
+  fileInput.value?.click()
+}
+
+function clearBackgroundImage() {
+  batchUpdateProperty(selection, 'backgroundImage', '')
+}
+
+function onFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (typeof reader.result === 'string') {
+      batchUpdateProperty(selection, 'backgroundImage', reader.result)
+    }
+    input.value = ''
+  }
+  reader.onerror = () => {
+    input.value = ''
+  }
+  reader.readAsDataURL(file)
+}
 </script>
 
-<style scoped></style>
+<style scoped>
+.vkedit-rect-property__row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.vkedit-rect-property__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.vkedit-rect-property__file-input {
+  display: none;
+}
+</style>

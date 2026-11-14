@@ -7,6 +7,7 @@ import type { GraphicRegistryPlugin } from '@/plugins/graphic-registry'
 import Export from './Export.vue'
 import jsPDF from 'jspdf'
 import konva from 'konva'
+import { buildSvgString } from './svg-export'
 
 export class ExportPlugin extends BasePlugin {
   name = 'export-plugin'
@@ -132,6 +133,65 @@ export class ExportPlugin extends BasePlugin {
       timestamp: Date.now(),
       source: 'export-plugin',
     })
+  }
+
+  // 处理导出 SVG
+  async handleExportSvg() {
+    let prevented = false
+    this.host?.emit('export:start', {
+      timestamp: Date.now(),
+      source: 'export-plugin',
+      format: 'svg',
+      prevent: () => {
+        prevented = true
+      },
+    })
+
+    // 如果被阻止,则不执行导出
+    if (prevented) {
+      return
+    }
+
+    try {
+      await this.exportSvg()
+    } catch (error) {
+      this.host?.emit('export:error', {
+        format: 'svg',
+        error,
+        timestamp: Date.now(),
+        source: 'export-plugin',
+      })
+      console.error('Export SVG failed:', error)
+      return
+    }
+    this.host?.emit('export:complete', {
+      format: 'svg',
+      timestamp: Date.now(),
+      source: 'export-plugin',
+    })
+  }
+
+  // 导出 SVG
+  async exportSvg() {
+    const hostState = this.host?.status
+    if (!hostState) return
+
+    const elementsPlugin = this.host?.getPlugin('graphic-registry-plugin') as GraphicRegistryPlugin
+    if (!elementsPlugin) return
+
+    const elements = elementsPlugin.getOrderedElements('ascending')
+    const svg = await buildSvgString(elements, hostState.width, hostState.height)
+    if (!svg) return
+
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `vkedit-${Date.now()}.svg`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   // 导出图片
@@ -260,7 +320,7 @@ import type { EditorHost } from '@/core'
 
 export interface ExportEventData extends BaseEventData {
   format: 'png' | 'jpeg' | 'pdf' | 'json' | string
-  error?: any
+  error?: unknown
   // 阻止导出
   prevent?: () => void
 }

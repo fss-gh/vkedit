@@ -12,6 +12,7 @@ export interface RectOptions extends BaseGraphicElementOptions {
   stroke?: string
   strokeWidthMM?: number
   cornerRadiusMM?: number
+  backgroundImage?: string
   xmm?: number
   ymm?: number
 }
@@ -23,6 +24,7 @@ export class RectElement extends BaseGraphicElement {
   public stroke: string = 'black'
   public strokeWidthMM: number = 0.2
   public cornerRadiusMM: number = 0
+  public backgroundImage: string = ''
 
   constructor(host: EditorHost, options: Partial<RectOptions> = {}) {
     // 支持传入 xmm/ymm 或 x/y
@@ -43,6 +45,7 @@ export class RectElement extends BaseGraphicElement {
     this.stroke = options.stroke ?? this.stroke
     this.strokeWidthMM = options.strokeWidthMM ?? this.strokeWidthMM
     this.cornerRadiusMM = options.cornerRadiusMM ?? this.cornerRadiusMM
+    this.backgroundImage = options.backgroundImage ?? this.backgroundImage
   }
 
   public get strokeWidth() {
@@ -69,6 +72,7 @@ export class RectElement extends BaseGraphicElement {
     this.stroke = (data.stroke as string) ?? 'black'
     this.strokeWidthMM = (data.strokeWidthMM as number) ?? 0.2
     this.cornerRadiusMM = (data.cornerRadiusMM as number) ?? 0
+    this.backgroundImage = (data.backgroundImage as string) ?? ''
   }
 
   serialize() {
@@ -78,6 +82,7 @@ export class RectElement extends BaseGraphicElement {
       stroke: this.stroke,
       strokeWidthMM: this.strokeWidthMM,
       cornerRadiusMM: this.cornerRadiusMM,
+      backgroundImage: this.backgroundImage,
     }
   }
 }

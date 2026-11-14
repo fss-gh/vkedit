@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div>
     <VkDropdown>
@@ -13,6 +14,9 @@
       </button>
       <button class="vkedit-dropdown__item" @click="exportPlugin.handleExportImage()">
         <span>PNG</span>
+      </button>
+      <button class="vkedit-dropdown__item" @click="exportPlugin.handleExportSvg()">
+        <span>SVG</span>
       </button>
       <button class="vkedit-dropdown__item" @click="exportPlugin.handleExportJSON()">
         <span>JSON</span>

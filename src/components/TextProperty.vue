@@ -8,6 +8,19 @@
       @update:model-value="(value: string) => emit('update', 'text', value)"
     ></VkTextarea>
   </div>
+  <div v-if="fontFamily !== undefined" class="vkedit-property__col-full" style="display: flex; flex-direction: column; gap: 4px">
+    <VkLabel>字体</VkLabel>
+    <VkSelect
+      :model-value="fontFamily"
+      @update:model-value="(value: string) => emit('update', 'fontFamily', value)"
+    >
+      <option value="">默认字体</option>
+      <option v-for="font in fontOptions" :key="font" :value="font">{{ font }}</option>
+      <option v-if="fontFamily && !fontOptions.includes(fontFamily)" :value="fontFamily">
+        {{ fontFamily }}
+      </option>
+    </VkSelect>
+  </div>
   <div v-if="fill !== undefined" class="vkedit-property__col-full">
     <VkColorPicker
       :model-value="fill"
@@ -21,34 +34,20 @@
         :model-value="fontSize"
         :min="0"
         :dpm="hostState.dpm"
-        @update:model-value="(value: any) => emit('update', 'fontSize', value)"
+        @update:model-value="(value: number) => emit('update', 'fontSize', value)"
       ></VkInputMM>
     </div>
     <VkToggle
       size="sm"
       :model-value="fontStyle?.includes('bold') ?? false"
-      @update:model-value="
-        (value: boolean) =>
-          emit(
-            'update',
-            'fontStyle',
-            value ? `${fontStyle} bold` : fontStyle?.replace('bold', '').trim(),
-          )
-      "
+      @update:model-value="toggleBold"
     >
       <IconFormatBold style="width: 20px; height: 20px" />
     </VkToggle>
     <VkToggle
       size="sm"
       :model-value="fontStyle?.includes('italic') ?? false"
-      @update:model-value="
-        (value: boolean) =>
-          emit(
-            'update',
-            'fontStyle',
-            value ? `italic ${fontStyle}` : fontStyle?.replace('italic', '').trim(),
-          )
-      "
+      @update:model-value="toggleItalic"
     >
       <IconFormatItalic style="width: 20px; height: 20px" />
     </VkToggle>
@@ -88,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { VkToggle, VkLabel, VkInputMM, VkColorPicker, VkTextarea } from '@/components/ui'
+import { VkToggle, VkLabel, VkInputMM, VkColorPicker, VkTextarea, VkSelect } from '@/components/ui'
 import IconFormatBold from '~icons/ph/text-b-light'
 import IconFormatItalic from '~icons/ph/text-italic-light'
 import IconAlignJustifyFlexStart from '~icons/ph/text-align-left-light'
@@ -104,6 +103,7 @@ const {
   text,
   fill,
   fontSize,
+  fontFamily,
   align,
   verticalAlign,
   fontStyle,
@@ -113,14 +113,51 @@ const {
   text?: string
   fill?: string
   fontSize: number
+  fontFamily?: string
   align: IAlign
   verticalAlign: IVerticalAlign
   fontStyle?: IFontStyle // 文字加粗
 }>()
 
 const emit = defineEmits<{
-  update: [property: string, value: any]
+  update: [property: string, value: string | number | boolean | undefined]
 }>()
+
+function buildFontStyle(bold: boolean, italic: boolean): IFontStyle {
+  if (bold && italic) return 'italic bold'
+  if (bold) return 'bold'
+  if (italic) return 'italic'
+  return 'normal'
+}
+
+function toggleBold(value: boolean) {
+  const hasItalic = fontStyle?.includes('italic') ?? false
+  emit('update', 'fontStyle', buildFontStyle(value, hasItalic))
+}
+
+function toggleItalic(value: boolean) {
+  const hasBold = fontStyle?.includes('bold') ?? false
+  emit('update', 'fontStyle', buildFontStyle(hasBold, value))
+}
+
+const fontOptions = [
+  'Arial',
+  'Times New Roman',
+  'Courier New',
+  'Georgia',
+  'Verdana',
+  'Tahoma',
+  '宋体',
+  '黑体',
+  '楷体',
+  '微软雅黑',
+  'SimSun',
+  'SimHei',
+  'Microsoft YaHei',
+  'sans-serif',
+  'serif',
+  'monospace',
+]
 
 // 获取 hostState 用于 dpm
 const { hostState } = useHostState(host)
