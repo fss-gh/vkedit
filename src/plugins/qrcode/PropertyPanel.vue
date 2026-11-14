@@ -5,6 +5,18 @@
     <VkLabel>内容</VkLabel>
     <VkInput :model-value="element.content" @update:model-value="onContentChange"> </VkInput>
   </div>
+  <div class="vkedit-property__col-full">
+    <VkLabel>纠错等级</VkLabel>
+    <VkSelect
+      :model-value="element.errorCorrectionLevel"
+      @update:model-value="onErrorCorrectionLevelChange"
+    >
+      <option value="L">L（约7%）</option>
+      <option value="M">M（约15%）</option>
+      <option value="Q">Q（约25%）</option>
+      <option value="H">H（约30%）</option>
+    </VkSelect>
+  </div>
   <div>
     <VkLabel>大小</VkLabel>
     <VkInputNumberMM :min="0" :model-value="element.wmm" @update:model-value="onSizeChange">
@@ -41,15 +53,37 @@
       @update:model-value="(value) => batchUpdateProperty(selection, 'background', value ?? '#ffffff')"
     />
   </div>
+  <div class="vkedit-property__col-full">
+    <VkLabel>中心图标</VkLabel>
+    <div class="vkedit-qr-property__row">
+      <VkInput
+        class="vkedit-qr-property__input"
+        :model-value="element.iconSrc"
+        placeholder="图片 URL 或 data URL"
+        @update:model-value="onIconSrcChange"
+      />
+      <VkButton size="sm" variant="outline" @click="openFilePicker">上传</VkButton>
+      <VkButton v-if="element.iconSrc" size="sm" variant="outline" @click="clearIconSrc">
+        清除
+      </VkButton>
+    </div>
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/*"
+      class="vkedit-qr-property__file-input"
+      @change="onFileChange"
+    />
+  </div>
   <div v-if="readabilityWarning" class="vkedit-property__col-full vkedit-property__warning">
     {{ readabilityWarning }}
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { EditorHost } from '@/core'
-import type { QrcodeElement } from './qrcode'
+import type { QRErrorCorrectionLevel, QrcodeElement } from './qrcode'
 import { usePropertyCommand } from '@/hooks'
 import {
   VkInputNumberMM,
@@ -57,6 +91,8 @@ import {
   VkLabel,
   VkInputNumber,
   VkColorPicker,
+  VkButton,
+  VkSelect,
 } from '../../components'
 import { useReadabilityWarning } from '@/utils/readability'
 import { DisplayNameProperty } from '@/components'
@@ -88,9 +124,62 @@ function onSizeChange(value: number) {
 function onMarginMMUpdate(value: number) {
   batchUpdateProperty(selection, 'marginMM', value)
 }
+
+function onErrorCorrectionLevelChange(value: string) {
+  if (['L', 'M', 'Q', 'H'].includes(value)) {
+    batchUpdateProperty(selection, 'errorCorrectionLevel', value as QRErrorCorrectionLevel)
+  }
+}
+
+const fileInput = ref<HTMLInputElement>()
+
+function onIconSrcChange(value: string | number) {
+  batchUpdateProperty(selection, 'iconSrc', String(value ?? ''))
+}
+
+function openFilePicker() {
+  fileInput.value?.click()
+}
+
+function clearIconSrc() {
+  batchUpdateProperty(selection, 'iconSrc', '')
+}
+
+function onFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (typeof reader.result === 'string') {
+      batchUpdateProperty(selection, 'iconSrc', reader.result)
+    }
+    input.value = ''
+  }
+  reader.onerror = () => {
+    input.value = ''
+  }
+  reader.readAsDataURL(file)
+}
 </script>
 
 <style scoped>
+.vkedit-qr-property__row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.vkedit-qr-property__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.vkedit-qr-property__file-input {
+  display: none;
+}
+
 .vkedit-property__warning {
   font-size: var(--vkedit-font-size-xs);
   color: var(--vkedit-color-warning);
