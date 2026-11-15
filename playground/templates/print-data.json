@@ -1,0 +1,202 @@
+[
+  {
+    "sampleName": "饮用水源水",
+    "model": "DW-2024A",
+    "sampleNo": "S20241101001",
+    "testDate": "2024-11-01",
+    "nextTestDate": "2025-11-01",
+    "sampleCode": "QR-DW-0001",
+    "testers": "张伟,李娜",
+    "qr1": "QR1-20241101-0001"
+  },
+  {
+    "sampleName": "地表水",
+    "model": "SW-2024B",
+    "sampleNo": "S20241101002",
+    "testDate": "2024-11-02",
+    "nextTestDate": "2025-11-02",
+    "sampleCode": "QR-SW-0002",
+    "testers": "王强",
+    "qr1": "QR1-20241102-0002"
+  },
+  {
+    "sampleName": "工业废水",
+    "model": "IW-2023C",
+    "sampleNo": "S20241101003",
+    "testDate": "2024-11-03",
+    "nextTestDate": "2025-05-03",
+    "sampleCode": "QR-IW-0003",
+    "testers": "赵敏,陈晨",
+    "qr1": "QR1-20241103-0003"
+  },
+  {
+    "sampleName": "生活污水",
+    "model": "DW-2024A",
+    "sampleNo": "S20241101004",
+    "testDate": "2024-11-04",
+    "nextTestDate": "2025-11-04",
+    "sampleCode": "QR-DW-0004",
+    "testers": "李娜",
+    "qr1": "QR1-20241104-0004"
+  },
+  {
+    "sampleName": "地下水",
+    "model": "GW-2022D",
+    "sampleNo": "S20241101005",
+    "testDate": "2024-11-05",
+    "nextTestDate": "2025-11-05",
+    "sampleCode": "QR-GW-0005",
+    "testers": "孙磊,周婷",
+    "qr1": "QR1-20241105-0005"
+  },
+  {
+    "sampleName": "海水",
+    "model": "SW-2024B",
+    "sampleNo": "S20241101006",
+    "testDate": "2024-11-06",
+    "nextTestDate": "2025-08-06",
+    "sampleCode": "QR-SW-0006",
+    "testers": "王强,张伟",
+    "qr1": "QR1-20241106-0006"
+  },
+  {
+    "sampleName": "雨水",
+    "model": "RW-2024E",
+    "sampleNo": "S20241101007",
+    "testDate": "2024-11-07",
+    "nextTestDate": "2025-11-07",
+    "sampleCode": "QR-RW-0007",
+    "testers": "陈晨",
+    "qr1": "QR1-20241107-0007"
+  },
+  {
+    "sampleName": "游泳池水",
+    "model": "PW-2023F",
+    "sampleNo": "S20241101008",
+    "testDate": "2024-11-08",
+    "nextTestDate": "2025-02-08",
+    "sampleCode": "QR-PW-0008",
+    "testers": "周婷,刘洋",
+    "qr1": "QR1-20241108-0008"
+  },
+  {
+    "sampleName": "锅炉水",
+    "model": "BW-2022G",
+    "sampleNo": "S20241101009",
+    "testDate": "2024-11-09",
+    "nextTestDate": "2025-05-09",
+    "sampleCode": "QR-BW-0009",
+    "testers": "孙磊",
+    "qr1": "QR1-20241109-0009"
+  },
+  {
+    "sampleName": "冷却水",
+    "model": "CW-2024H",
+    "sampleNo": "S20241101010",
+    "testDate": "2024-11-10",
+    "nextTestDate": "2025-11-10",
+    "sampleCode": "QR-CW-0010",
+    "testers": "赵敏,王强",
+    "qr1": "QR1-20241110-0010"
+  },
+  {
+    "sampleName": "农田灌溉水",
+    "model": "IW-2023C",
+    "sampleNo": "S20241101011",
+    "testDate": "2024-11-11",
+    "nextTestDate": "2025-04-11",
+    "sampleCode": "QR-IW-0011",
+    "testers": "李娜,陈晨",
+    "qr1": "QR1-20241111-0011"
+  },
+  {
+    "sampleName": "景观用水",
+    "model": "LW-2024I",
+    "sampleNo": "S20241101012",
+    "testDate": "2024-11-12",
+    "nextTestDate": "2025-11-12",
+    "sampleCode": "QR-LW-0012",
+    "testers": "张伟",
+    "qr1": "QR1-20241112-0012"
+  },
+  {
+    "sampleName": "回用水",
+    "model": "RW-2024E",
+    "sampleNo": "S20241101013",
+    "testDate": "2024-11-13",
+    "nextTestDate": "2025-05-13",
+    "sampleCode": "QR-RW-0013",
+    "testers": "刘洋,周婷",
+    "qr1": "QR1-20241113-0013"
+  },
+  {
+    "sampleName": "自来水",
+    "model": "TW-2023J",
+    "sampleNo": "S20241101014",
+    "testDate": "2024-11-14",
+    "nextTestDate": "2025-11-14",
+    "sampleCode": "QR-TW-0014",
+    "testers": "王强,李娜",
+    "qr1": "QR1-20241114-0014"
+  },
+  {
+    "sampleName": "纯净水",
+    "model": "PW-2023F",
+    "sampleNo": "S20241101015",
+    "testDate": "2024-11-15",
+    "nextTestDate": "2025-11-15",
+    "sampleCode": "QR-PW-0015",
+    "testers": "陈晨",
+    "qr1": "QR1-20241115-0015"
+  },
+  {
+    "sampleName": "矿泉水",
+    "model": "MW-2024K",
+    "sampleNo": "S20241101016",
+    "testDate": "2024-11-16",
+    "nextTestDate": "2025-11-16",
+    "sampleCode": "QR-MW-0016",
+    "testers": "赵敏,张伟",
+    "qr1": "QR1-20241116-0016"
+  },
+  {
+    "sampleName": "中水",
+    "model": "RW-2024E",
+    "sampleNo": "S20241101017",
+    "testDate": "2024-11-17",
+    "nextTestDate": "2025-06-17",
+    "sampleCode": "QR-RW-0017",
+    "testers": "孙磊,刘洋",
+    "qr1": "QR1-20241117-0017"
+  },
+  {
+    "sampleName": "实验室纯水",
+    "model": "LW-2024I",
+    "sampleNo": "S20241101018",
+    "testDate": "2024-11-18",
+    "nextTestDate": "2025-11-18",
+    "sampleCode": "QR-LW-0018",
+    "testers": "周婷",
+    "qr1": "QR1-20241118-0018"
+  },
+  {
+    "sampleName": "工业循环水",
+    "model": "CW-2024H",
+    "sampleNo": "S20241101019",
+    "testDate": "2024-11-19",
+    "nextTestDate": "2025-05-19",
+    "sampleCode": "QR-CW-0019",
+    "testers": "王强,陈晨",
+    "qr1": "QR1-20241119-0019"
+  },
+  {
+    "sampleName": "雨水收集水",
+    "model": "RW-2024E",
+    "sampleNo": "S20241101020",
+    "testDate": "2024-11-20",
+    "nextTestDate": "2025-11-20",
+    "sampleCode": "QR-RW-0020",
+    "testers": "李娜,张伟",
+    "qr1": "QR1-20241120-0020"
+  }
+]

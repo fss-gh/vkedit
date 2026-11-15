@@ -13,7 +13,14 @@ vkedit 使用了以下开源依赖。本文件依据各许可证要求列出其�
 | jspdf | ^3.0.3 | MIT | https://github.com/parallax/jsPDF |
 | lodash | ^4.17.21 | MIT | https://github.com/lodash/lodash |
 | qrcode | ^1.5.1 | MIT | https://github.com/soldair/node-qrcode |
+| svg2pdf.js | ^2.9.0 | MIT | https://github.com/yWorks/svg2pdf.js |
 | uuid | ^13.0.0 | MIT | https://github.com/uuidjs/uuid |
+
+## 随包分发的资源
+
+| 资源 | 许可证 | 来源 |
+| --- | --- | --- |
+| Noto Sans SC（NotoSansSC-Regular.ttf） | SIL OFL 1.1 | https://github.com/googlefonts/noto-cjk |
 
 ### Peer Dependencies（由宿主项目提供）
 
@@ -56,6 +63,7 @@ vkedit 使用了以下开源依赖。本文件依据各许可证要求列出其�
 ## 许可证全文
 
 - MIT: https://opensource.org/license/mit/
+- SIL OFL 1.1: https://openfontlicense.org/（随包附带的 `OFL.txt` 为 Noto Sans SC 字体许可证全文）
 
 > 注：`typescript` 为 Apache-2.0 许可，但属开发依赖，不随 npm 包分发，无需附带许可证全文。
 

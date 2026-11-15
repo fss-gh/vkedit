@@ -8,6 +8,13 @@
       @update:model-value="(value: string) => emit('update', 'text', value)"
     ></VkTextarea>
   </div>
+  <div class="vkedit-property__col-full" style="display: flex; align-items: center; justify-content: space-between">
+    <VkLabel>可变性</VkLabel>
+    <VkSwitch
+      :model-value="variable ?? false"
+      @update:model-value="(value) => emit('update', 'variable', value)"
+    />
+  </div>
   <div v-if="fontFamily !== undefined" class="vkedit-property__col-full" style="display: flex; flex-direction: column; gap: 4px">
     <VkLabel>字体</VkLabel>
     <VkSelect
@@ -20,6 +27,14 @@
         {{ fontFamily }}
       </option>
     </VkSelect>
+  </div>
+  <div class="vkedit-property__col-full" style="display: flex; flex-direction: column; gap: 4px">
+    <VkLabel>文字间距</VkLabel>
+    <VkInputNumberMM
+      :model-value="letterSpacingMM ?? 0"
+      :min="0"
+      @update:model-value="(value: number) => emit('update', 'letterSpacingMM', value)"
+    ></VkInputNumberMM>
   </div>
   <div v-if="fill !== undefined" class="vkedit-property__col-full">
     <VkColorPicker
@@ -87,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { VkToggle, VkLabel, VkInputMM, VkColorPicker, VkTextarea, VkSelect } from '@/components/ui'
+import { VkToggle, VkLabel, VkInputMM, VkInputNumberMM, VkColorPicker, VkTextarea, VkSelect, VkSwitch } from '@/components/ui'
 import IconFormatBold from '~icons/ph/text-b-light'
 import IconFormatItalic from '~icons/ph/text-italic-light'
 import IconAlignJustifyFlexStart from '~icons/ph/text-align-left-light'
@@ -113,10 +128,12 @@ const {
   text?: string
   fill?: string
   fontSize: number
+  letterSpacingMM?: number
   fontFamily?: string
   align: IAlign
   verticalAlign: IVerticalAlign
   fontStyle?: IFontStyle // 文字加粗
+  variable?: boolean
 }>()
 
 const emit = defineEmits<{

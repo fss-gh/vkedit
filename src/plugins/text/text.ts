@@ -11,11 +11,13 @@ export interface TextOptions extends BaseGraphicElementOptions {
   y?: number
   text?: string
   fontSize?: number
+  letterSpacingMM?: number
   fontFamily?: string
   align?: 'left' | 'center' | 'right' | 'justify'
   verticalAlign?: 'top' | 'middle' | 'bottom'
   fontStyle?: 'normal' | 'italic' | 'bold' | '500' | 'italic bold'
   fill?: string
+  variable?: boolean
   xmm?: number
   ymm?: number
 }
@@ -24,11 +26,13 @@ export class TextElement extends BaseGraphicElement {
   public type = 'text'
   public text: string = '新建文本'
   public fontSize: number = 20
+  public letterSpacingMM: number = 0
   public fontFamily: string = 'Arial'
   public align: 'left' | 'center' | 'right' | 'justify' = 'left'
   public verticalAlign: 'top' | 'middle' | 'bottom' = 'bottom'
   public fontStyle: 'normal' | 'italic' | 'bold' | '500' | 'italic bold' = 'normal'
   public fill: string = '#000000'
+  public variable: boolean = false
 
   constructor(host:EditorHost,options: Partial<TextOptions> = {}) {
     super(host,{
@@ -47,11 +51,17 @@ export class TextElement extends BaseGraphicElement {
     })
     this.text = options.text ?? this.text
     this.fontSize = options.fontSize ?? this.fontSize
+    this.letterSpacingMM = options.letterSpacingMM ?? this.letterSpacingMM
     this.fontFamily = options.fontFamily ?? this.fontFamily
     this.align = options.align ?? this.align
     this.verticalAlign = options.verticalAlign ?? this.verticalAlign
     this.fontStyle = options.fontStyle ?? this.fontStyle
     this.fill = options.fill ?? this.fill
+    this.variable = options.variable ?? this.variable
+  }
+
+  public get letterSpacing() {
+    return Math.round(this.letterSpacingMM * this.host.status.dpm)
   }
 
   public get config() {
@@ -59,11 +69,13 @@ export class TextElement extends BaseGraphicElement {
       ...super.config,
       text: this.text,
       fontSize: this.fontSize,
+      letterSpacing: this.letterSpacing,
       fontFamily: this.fontFamily,
       align: this.align,
       verticalAlign: this.verticalAlign,
       fontStyle: this.fontStyle,
       fill: this.fill,
+      variable: this.variable,
     }
   }
 
@@ -71,6 +83,7 @@ export class TextElement extends BaseGraphicElement {
     super.deserialize(data)
     this.text = typeof data.text === 'string' ? data.text : '新建文本'
     this.fontSize = typeof data.fontSize === 'number' ? data.fontSize : 20
+    this.letterSpacingMM = typeof data.letterSpacingMM === 'number' ? data.letterSpacingMM : 0
     this.fontFamily = typeof data.fontFamily === 'string' ? data.fontFamily : 'Arial'
     this.align = ['left', 'center', 'right', 'justify'].includes(String(data.align))
       ? (data.align as TextElement['align'])
@@ -88,6 +101,7 @@ export class TextElement extends BaseGraphicElement {
       this.fontStyle = hasBold && hasItalic ? 'italic bold' : hasBold ? 'bold' : hasItalic ? 'italic' : 'normal'
     }
     this.fill = typeof data.fill === 'string' ? data.fill : '#000000'
+    this.variable = typeof data.variable === 'boolean' ? data.variable : false
   }
 
   serialize() {
@@ -95,11 +109,13 @@ export class TextElement extends BaseGraphicElement {
       ...super.serialize(),
       text: this.text,
       fontSize: this.fontSize,
+      letterSpacingMM: this.letterSpacingMM,
       fontFamily: this.fontFamily,
       align: this.align,
       verticalAlign: this.verticalAlign,
       fontStyle: this.fontStyle,
       fill: this.fill,
+      variable: this.variable,
     }
   }
 }

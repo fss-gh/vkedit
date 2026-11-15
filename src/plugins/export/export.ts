@@ -5,9 +5,9 @@
 import { BasePlugin } from '@/types/base-plugin'
 import type { GraphicRegistryPlugin } from '@/plugins/graphic-registry'
 import Export from './Export.vue'
-import jsPDF from 'jspdf'
 import konva from 'konva'
 import { buildSvgString } from './svg-export'
+import { createPdfFromSvgPages, type CreatePdfOptions } from '@/utils/pdf'
 
 export class ExportPlugin extends BasePlugin {
   name = 'export-plugin'
@@ -101,7 +101,7 @@ export class ExportPlugin extends BasePlugin {
   }
 
   // 处理导出 PDF
-  handleExportPdf() {
+  async handleExportPdf() {
     let prevented = false
     this.host?.emit('export:start', {
       format: 'pdf',
@@ -118,7 +118,7 @@ export class ExportPlugin extends BasePlugin {
     }
 
     try {
-      this.exportPdf()
+      await this.exportPdf()
     } catch (error) {
       this.host?.emit('export:error', {
         format: 'pdf',
@@ -223,21 +223,24 @@ export class ExportPlugin extends BasePlugin {
     URL.revokeObjectURL(url)
   }
 
-  // 处理 PDF 导出
-  exportPdf() {
+  // 处理 PDF 导出：使用 SVG 矢量直出 PDF，避免 PNG 栅格化
+  async exportPdf(pdfOptions?: CreatePdfOptions) {
     const hostState = this.host?.status
     if (!hostState) return
-    // 获取元素的 DataURL
-    const dataUrl = this.elementsToDataURL()
-    if (!dataUrl) return
 
-    // 创建jsPDF实例 长宽为host内容区尺寸
-    const pdf = new jsPDF({
-      orientation: 'landscape',
-      unit: 'px',
-      format: [hostState.width, hostState.height],
-    })
-    pdf.addImage(dataUrl, 'PNG', 0, 0, hostState.width, hostState.height)
+    const elementsPlugin = this.host?.getPlugin(
+      'graphic-registry-plugin',
+    ) as GraphicRegistryPlugin
+    if (!elementsPlugin) return
+
+    const elements = elementsPlugin.getOrderedElements('ascending')
+    const svg = await buildSvgString(elements, hostState.width, hostState.height)
+    if (!svg) return
+
+    const pdf = await createPdfFromSvgPages(
+      [{ svg, width: hostState.width, height: hostState.height }],
+      pdfOptions,
+    )
     pdf.save(`vkedit-${Date.now()}.pdf`)
   }
 

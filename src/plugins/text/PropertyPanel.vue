@@ -9,6 +9,8 @@
     :align="element.align"
     :font-style="element.fontStyle"
     :vertical-align="element.verticalAlign"
+    :letterSpacingMM="element.letterSpacingMM"
+    :variable="element.variable"
     :host="host"
     @update="(prop, value) => batchUpdateProperty(selection, prop, value)"
   ></TextProperty>

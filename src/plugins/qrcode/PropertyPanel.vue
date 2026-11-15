@@ -6,6 +6,10 @@
     <VkInput :model-value="element.content" @update:model-value="onContentChange"> </VkInput>
   </div>
   <div class="vkedit-property__col-full">
+    <VkLabel>可变性</VkLabel>
+    <VkSwitch :model-value="element.variable" @update:model-value="(value) => batchUpdateProperty(selection, 'variable', value)" />
+  </div>
+  <div class="vkedit-property__col-full">
     <VkLabel>纠错等级</VkLabel>
     <VkSelect
       :model-value="element.errorCorrectionLevel"
@@ -93,6 +97,7 @@ import {
   VkColorPicker,
   VkButton,
   VkSelect,
+  VkSwitch,
 } from '../../components'
 import { useReadabilityWarning } from '@/utils/readability'
 import { DisplayNameProperty } from '@/components'

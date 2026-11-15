@@ -4,6 +4,9 @@ import shippingLabel from './shipping-label.json'
 import priceTag from './price-tag.json'
 import receipt from './receipt.json'
 import certificate from './certificate.json'
+import printDataJson from './print-data.json'
+
+export const printData = printDataJson as Array<Record<string, string>>
 
 export interface SceneTemplate {
   key: string
@@ -44,9 +47,9 @@ export const templates: SceneTemplate[] = [
   },
   {
     key: 'certificate',
-    name: '奖状',
+    name: '合格证',
     presetKey: 'certificate',
-    description: '大字号标题 + 多段正文',
+    description: '动态数据、二维码、示例数据打印',
     data: certificate as unknown as SceneTemplate['data'],
   },
 ]

@@ -16,6 +16,10 @@
     <VkInput :model-value="element.content" @update:model-value="onContentChange"> </VkInput>
   </div>
   <div>
+    <label class="vkedit-property__label">可变性</label>
+    <VkSwitch :model-value="element.variable" @update:model-value="onVariableUpdate" />
+  </div>
+  <div>
     <label class="vkedit-property__label">可见性</label>
     <VkSwitch :model-value="element.displayValue" @update:model-value="onDisplayValueUpdate" />
   </div>
@@ -122,6 +126,9 @@ function onFontSizeMMUpdate(value: number) {
 }
 function onDisplayValueUpdate(value: boolean) {
   batchUpdateProperty(selection, 'displayValue', value)
+}
+function onVariableUpdate(value: boolean) {
+  batchUpdateProperty(selection, 'variable', value)
 }
 </script>
 

@@ -5,6 +5,8 @@ import dts from 'vite-plugin-dts'
 import Icons from 'unplugin-icons/vite'
 
 export default defineConfig({
+  // 库产物使用相对路径，保证字体资源在子目录部署或 CDN 场景下也能被加载
+  base: './',
   plugins: [
     vue(),
     Icons({ compiler: 'vue3' }),
@@ -35,5 +37,7 @@ export default defineConfig({
       external: ['vue', 'konva', 'vue-konva'],
     },
     cssCodeSplit: false,
+    // 库模式下默认会把资源内联为 base64；字体文件较大，必须输出为独立资源文件
+    assetsInlineLimit: 0,
   },
 })

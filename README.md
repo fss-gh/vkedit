@@ -23,6 +23,7 @@
 - **矩形背景图片** - 支持 URL / data URL / 本地上传背景图，自动拉伸适配并支持清除
 - **文本排版** - 字体族、加粗、斜体设置，JSON 导入导出后属性不丢失
 - **二维码高级设置** - 支持纠错等级（L/M/Q/H）与中心图标（URL / data URL / 本地上传）
+- **业务打印** - 通过 `printBusinessData()` 将打印数据按 `displayName` 绑定填充文本/二维码/条码，逐条生成 PDF，支持浏览器打印预览，也支持通过 PrintBridge 兼容接口静默 PDF 打印（`POST /api/print`）
 - **撤销/重做** - 基于命令模式，所有修改操作可逆
 - **导入/导出** - JSON 序列化、PNG/JPG 图片、PDF 文档、SVG 矢量图
 - **对齐与分布** - 左/右/上/下/居中对齐、水平/垂直均分
@@ -140,6 +141,62 @@ import 'vkedit/dist/vkedit.css'
 - **Semantic**（主题选择器）— 引用 palette 的语义变量，分别定义 `data-vkedit-theme="dark"`（默认）与 `data-vkedit-theme="light"` 两套映射
 
 完整变量列表与破坏性变更说明见 [MIGRATION.md](./MIGRATION.md)。
+
+---
+
+## PrintBridge 静默 PDF 打印
+
+vkedit 通过 `printBusinessData()` 支持两种打印方式：
+
+- **浏览器打印**：不传 `printerAddress`，生成 PDF 后弹出浏览器打印预览；
+- **PrintBridge 静默打印**：传入 `printerAddress`，生成 PDF 后以 base64 形式静默发送到本地打印服务，由服务端直接调用打印机，不弹出打印对话框。
+
+### 接口约定
+
+PrintBridge 服务需实现以下接口：
+
+```http
+POST /api/print
+Content-Type: application/json
+```
+
+请求体格式：
+
+```json
+{
+  "pdf": "<base64-encoded PDF bytes>",
+  "printer": "HP LaserJet",
+  "copies": 1,
+  "mediaWidth": 100,
+  "mediaHeight": 50
+}
+```
+
+字段说明：
+
+- `pdf`：PDF 文件字节的 base64 编码，不包含 `data:application/pdf;base64,` 前缀；
+- `printer`：打印机名称；为空字符串时由服务端选择默认打印机；
+- `copies`：打印份数，当前固定为 `1`；
+- `mediaWidth` / `mediaHeight`：纸张尺寸（毫米），默认取模板 `state.wmm` / `state.hmm`，缺失时根据像素尺寸与 DPM 换算。
+
+### 使用示例
+
+```ts
+import { printBusinessData } from 'vkedit'
+
+await printBusinessData(
+  data,
+  json,
+  'http://localhost:9120', // 打印服务地址，也可直接填 http://localhost:9120/api/print
+  undefined, // PDF 字体等导出选项，可选
+  'HP LaserJet', // 打印机名称，可选
+)
+```
+
+`printerAddress` 支持两种写法：
+
+- `http://localhost:9120` → 自动请求 `http://localhost:9120/api/print`
+- `http://localhost:9120/api/print` → 原样请求
 
 ---
 

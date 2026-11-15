@@ -49,7 +49,9 @@
       "fontSize": 11,
       "align": "right",
       "verticalAlign": "bottom",
-      "fontStyle": "normal"
+      "fontStyle": "normal",
+      "displayName": "日期",
+      "variable": true
     },
     {
       "type": "rect",
@@ -567,7 +569,9 @@
       "fontSizeMM": 3,
       "marginMM": 0.2,
       "barcodeHeightMM": 8,
-      "barcodeWidthMM": 0.2
+      "barcodeWidthMM": 0.2,
+      "displayName": "单据号",
+      "variable": true
     }
   ]
 }

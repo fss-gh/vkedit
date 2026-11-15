@@ -17,6 +17,7 @@ export interface QrcodeOptions extends BaseGraphicElementOptions {
   marginMM?: number
   errorCorrectionLevel?: QRErrorCorrectionLevel
   iconSrc?: string
+  variable?: boolean
 }
 
 export class QrcodeElement extends BaseGraphicElement {
@@ -27,6 +28,7 @@ export class QrcodeElement extends BaseGraphicElement {
   public marginMM: number = 0.2
   public errorCorrectionLevel: QRErrorCorrectionLevel = 'M'
   public iconSrc: string = ''
+  public variable: boolean = false
   // public image = useImage('')[0]
 
   constructor(host: EditorHost, options: Partial<QrcodeOptions> = {}) {
@@ -50,6 +52,7 @@ export class QrcodeElement extends BaseGraphicElement {
     this.marginMM = options.marginMM ?? this.marginMM
     this.errorCorrectionLevel = options.errorCorrectionLevel ?? this.errorCorrectionLevel
     this.iconSrc = options.iconSrc ?? this.iconSrc
+    this.variable = options.variable ?? this.variable
     this.resizeAnchors = CORNER_ANCHORS
   }
 
@@ -63,6 +66,7 @@ export class QrcodeElement extends BaseGraphicElement {
       ? (data.errorCorrectionLevel as QRErrorCorrectionLevel)
       : 'M'
     this.iconSrc = typeof data.iconSrc === 'string' ? data.iconSrc : ''
+    this.variable = typeof data.variable === 'boolean' ? data.variable : false
   }
 
   serialize() {
@@ -74,6 +78,7 @@ export class QrcodeElement extends BaseGraphicElement {
       marginMM: this.marginMM,
       errorCorrectionLevel: this.errorCorrectionLevel,
       iconSrc: this.iconSrc,
+      variable: this.variable,
     }
   }
 

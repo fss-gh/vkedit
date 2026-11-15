@@ -3,6 +3,7 @@
     <Vkedit :host="host" :show-toolbox="true" :show-property-panel="true" :show-toolbar="true">
       <template #toolbar-actions="{ host: h }">
         <TemplateSwitcher :host="h" />
+        <PrintTester :host="h" />
       </template>
     </Vkedit>
   </div>
@@ -23,6 +24,7 @@ import {
 } from '@/index'
 import { LinePlugin } from '@/plugins/line'
 import TemplateSwitcher from './components/TemplateSwitcher.vue'
+import PrintTester from './components/PrintTester.vue'
 import { templates } from './templates'
 
 const host = createEditorHost({ basePropertyPanel: false, baseCanvasPropertyPanel: true })

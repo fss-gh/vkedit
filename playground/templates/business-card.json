@@ -47,7 +47,9 @@
       "fontSize": 28,
       "align": "left",
       "verticalAlign": "bottom",
-      "fontStyle": "bold"
+      "fontStyle": "bold",
+      "displayName": "姓名",
+      "variable": true
     },
     {
       "type": "text",
@@ -67,7 +69,9 @@
       "fontSize": 14,
       "align": "left",
       "verticalAlign": "bottom",
-      "fontStyle": "normal"
+      "fontStyle": "normal",
+      "displayName": "职位",
+      "variable": true
     },
     {
       "type": "text",
@@ -87,7 +91,9 @@
       "fontSize": 11,
       "align": "left",
       "verticalAlign": "bottom",
-      "fontStyle": "normal"
+      "fontStyle": "normal",
+      "displayName": "电话",
+      "variable": true
     },
     {
       "type": "text",
@@ -107,7 +113,9 @@
       "fontSize": 11,
       "align": "left",
       "verticalAlign": "bottom",
-      "fontStyle": "normal"
+      "fontStyle": "normal",
+      "displayName": "邮箱",
+      "variable": true
     },
     {
       "type": "qr",
@@ -126,7 +134,9 @@
       "content": "https://vkedit.org",
       "foreground": "#000000",
       "background": "#ffffff",
-      "marginMM": 0.2
+      "marginMM": 0.2,
+      "displayName": "网址",
+      "variable": true
     }
   ]
 }

@@ -16,6 +16,7 @@ export interface BarcodeOptions extends BaseGraphicElementOptions {
   marginMM?: number
   displayValue: boolean
   fontSizeMM: number
+  variable?: boolean
 }
 
 export class BarcodeElement extends BaseGraphicElement {
@@ -31,6 +32,7 @@ export class BarcodeElement extends BaseGraphicElement {
   public barcodeHeightMM = 8
   // 条码的条纹宽度
   public barcodeWidthMM = 0.2
+  public variable: boolean = false
 
   constructor(host: EditorHost, options: Partial<BarcodeOptions> = {}) {
     super(host, {
@@ -54,6 +56,7 @@ export class BarcodeElement extends BaseGraphicElement {
     this.displayValue = options.displayValue ?? this.displayValue
     this.fontSizeMM = options.fontSizeMM ?? this.fontSizeMM
     this.marginMM = options.marginMM ?? this.marginMM
+    this.variable = options.variable ?? this.variable
     this.resizeAnchors = null
   }
 
@@ -70,6 +73,7 @@ export class BarcodeElement extends BaseGraphicElement {
     return Math.round(this.barcodeWidthMM * this.host.status.dpm)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getTransformAttr(event: any): { oldAttrs: any; newAttrs: any } {
     const eAttrs = event.target.attrs
     const oldAttrs = {
@@ -89,17 +93,18 @@ export class BarcodeElement extends BaseGraphicElement {
     return { oldAttrs, newAttrs }
   }
 
-  deserialize(data: any): void {
+  deserialize(data: Record<string, unknown>): void {
     super.deserialize(data)
-    this.content = data.content
-    this.format = data.format
-    this.foreground = data.foreground
-    this.background = data.background
-    this.displayValue = data.displayValue
-    this.fontSizeMM = data.fontSizeMM
-    this.marginMM = data.marginMM
-    this.barcodeHeightMM = data.barcodeHeightMM
-    this.barcodeWidthMM = data.barcodeWidthMM
+    this.content = typeof data.content === 'string' ? data.content : '123456789012'
+    this.format = typeof data.format === 'string' ? data.format : 'CODE128'
+    this.foreground = typeof data.foreground === 'string' ? data.foreground : '#000000'
+    this.background = typeof data.background === 'string' ? data.background : '#ffffff'
+    this.displayValue = typeof data.displayValue === 'boolean' ? data.displayValue : true
+    this.fontSizeMM = typeof data.fontSizeMM === 'number' ? data.fontSizeMM : 3
+    this.marginMM = typeof data.marginMM === 'number' ? data.marginMM : 0.2
+    this.barcodeHeightMM = typeof data.barcodeHeightMM === 'number' ? data.barcodeHeightMM : 8
+    this.barcodeWidthMM = typeof data.barcodeWidthMM === 'number' ? data.barcodeWidthMM : 0.2
+    this.variable = typeof data.variable === 'boolean' ? data.variable : false
   }
 
   serialize() {
@@ -114,6 +119,7 @@ export class BarcodeElement extends BaseGraphicElement {
       marginMM: this.marginMM,
       barcodeHeightMM: this.barcodeHeightMM,
       barcodeWidthMM: this.barcodeWidthMM,
+      variable: this.variable,
     }
   }
   async renderBarcode(): Promise<HTMLCanvasElement> {
@@ -121,6 +127,7 @@ export class BarcodeElement extends BaseGraphicElement {
     try {
       // width option controls bar width; keep it small to fit
       JsBarcode(canvas, this.content ?? '', {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         format: (this.format as any) ?? 'CODE128',
         lineColor: this.foreground ?? '#000',
         background: this.background ?? '#fff',

@@ -78,6 +78,18 @@ function renderRect(element: RectElement): { defs: string; body: string } {
   return { defs, body: wrapTransform(element, rectBody) }
 }
 
+function createTextMeasureContext(element: TextElement): CanvasRenderingContext2D | null {
+  if (typeof document === 'undefined') return null
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  const fontStyle = element.fontStyle.includes('italic') ? 'italic' : 'normal'
+  const fontWeight =
+    element.fontStyle === '500' ? '500' : element.fontStyle.includes('bold') ? 'bold' : 'normal'
+  ctx.font = `${fontStyle} ${fontWeight} ${element.fontSize}px ${element.fontFamily || 'Arial'}`
+  return ctx
+}
+
 function renderText(element: TextElement): { defs: string; body: string } {
   const lines = String(element.text ?? '').split('\n')
   const lineHeight = element.fontSize * 1.2
@@ -101,6 +113,40 @@ function renderText(element: TextElement): { defs: string; body: string } {
   const fontStyle = element.fontStyle.includes('italic') ? 'italic' : 'normal'
   const fontWeight =
     element.fontStyle === '500' ? '500' : element.fontStyle.includes('bold') ? 'bold' : 'normal'
+  const fontAttrs = `font-family="${escapeXml(element.fontFamily || 'Arial')}" font-size="${fmt(element.fontSize)}" font-style="${fontStyle}" font-weight="${fontWeight}" fill="${element.fill || '#000000'}"`
+
+  // 文字间距不为 0 时，手动按字符计算坐标，避免 SVG letter-spacing 对对齐产生偏移
+  const letterSpacing = element.letterSpacing || 0
+  if (letterSpacing > 0) {
+    const measureCtx = createTextMeasureContext(element)
+    if (measureCtx) {
+      const charNodes = lines
+        .map((line, index) => {
+          const chars = Array.from(line)
+          const widths = chars.map((char) => measureCtx.measureText(char).width)
+          const lineWidth =
+            widths.reduce((sum, width) => sum + width, 0) + letterSpacing * chars.length
+          let x = 0
+          if (element.align === 'center') {
+            x = Math.max(0, (element.width - lineWidth) / 2)
+          } else if (element.align === 'right') {
+            x = Math.max(0, element.width - lineWidth)
+          }
+          const yLine = y + index * lineHeight
+          let cursorX = x
+          return chars
+            .map((char, charIndex) => {
+              const node = `<text x="${fmt(cursorX)}" y="${fmt(yLine)}" text-anchor="start" dominant-baseline="text-before-edge" ${fontAttrs} xml:space="preserve">${escapeXml(char)}</text>`
+              cursorX += widths[charIndex] + letterSpacing
+              return node
+            })
+            .join('')
+        })
+        .join('')
+
+      return { defs: '', body: wrapTransform(element, charNodes) }
+    }
+  }
 
   const tspans = lines
     .map((line, index) => {
@@ -109,7 +155,8 @@ function renderText(element: TextElement): { defs: string; body: string } {
     })
     .join('')
 
-  const text = `<text x="0" y="${fmt(y)}" dominant-baseline="text-before-edge" text-anchor="${textAnchor}" font-family="${escapeXml(element.fontFamily || 'Arial')}" font-size="${fmt(element.fontSize)}" font-style="${fontStyle}" font-weight="${fontWeight}" fill="${element.fill || '#000000'}" xml:space="preserve">${tspans}</text>`
+  const letterSpacingAttr = letterSpacing ? ` letter-spacing="${fmt(letterSpacing)}"` : ''
+  const text = `<text x="0" y="${fmt(y)}" dominant-baseline="text-before-edge" text-anchor="${textAnchor}" ${fontAttrs}${letterSpacingAttr} xml:space="preserve">${tspans}</text>`
 
   return { defs: '', body: wrapTransform(element, text) }
 }

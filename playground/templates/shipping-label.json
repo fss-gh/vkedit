@@ -47,7 +47,9 @@
       "fontSize": 11,
       "align": "left",
       "verticalAlign": "bottom",
-      "fontStyle": "normal"
+      "fontStyle": "normal",
+      "displayName": "收件人",
+      "variable": true
     },
     {
       "type": "text",
@@ -67,7 +69,9 @@
       "fontSize": 10,
       "align": "left",
       "verticalAlign": "bottom",
-      "fontStyle": "normal"
+      "fontStyle": "normal",
+      "displayName": "地址",
+      "variable": true
     },
     {
       "type": "text",
@@ -87,7 +91,9 @@
       "fontSize": 10,
       "align": "left",
       "verticalAlign": "bottom",
-      "fontStyle": "normal"
+      "fontStyle": "normal",
+      "displayName": "联系电话",
+      "variable": true
     },
     {
       "type": "barcode",
@@ -111,7 +117,9 @@
       "fontSizeMM": 3,
       "marginMM": 0.2,
       "barcodeHeightMM": 8,
-      "barcodeWidthMM": 0.2
+      "barcodeWidthMM": 0.2,
+      "displayName": "运单号",
+      "variable": true
     }
   ]
 }
