@@ -18,6 +18,7 @@ import {
   BarcodePlugin,
   ImagePlugin,
   CurvePlugin,
+  EllipsePlugin,
   Vkedit,
 } from '@/index'
 import { LinePlugin } from '@/plugins/line'
@@ -26,13 +27,15 @@ import { templates } from './templates'
 
 const host = createEditorHost({ basePropertyPanel: false, baseCanvasPropertyPanel: true })
 host
-  .installPlugin('rect-plugin', RectPlugin)
+
   .installPlugin('text-plugin', TextPlugin)
-  .installPlugin('qr-plugin', QrcodePlugin)
-  .installPlugin('barcode-plugin', BarcodePlugin)
-  .installPlugin('line-plugin', LinePlugin)
   .installPlugin('image-plugin', ImagePlugin)
+  .installPlugin('rect-plugin', RectPlugin)
+  .installPlugin('ellipse-plugin', EllipsePlugin)
+  .installPlugin('line-plugin', LinePlugin)
   .installPlugin('curve-plugin', CurvePlugin)
+  .installPlugin('barcode-plugin', BarcodePlugin)
+  .installPlugin('qr-plugin', QrcodePlugin)
 
 onMounted(() => {
   host.on('stage:dblclick', (event) => {

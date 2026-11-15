@@ -1,6 +1,6 @@
 /*
 SVG 导出工具：根据元素模型生成矢量 SVG 字符串。
-支持当前已注册的图形类型：矩形、文本、直线、曲线、图片、二维码、条码。
+支持当前已注册的图形类型：矩形、文本、直线、曲线、圆形、图片、二维码、条码。
 二维码/条码/图片通过渲染为 data URL 后以内嵌 <image> 方式导出。
 */
 
@@ -9,6 +9,7 @@ import type { RectElement } from '@/plugins/rect/rect'
 import type { TextElement } from '@/plugins/text/text'
 import type { LineElement } from '@/plugins/line/line'
 import type { CurveElement } from '@/plugins/curve/curve'
+import type { EllipseElement } from '@/plugins/ellipse/ellipse'
 import type { ImageElement } from '@/plugins/image/image'
 import type { QrcodeElement } from '@/plugins/qrcode/qrcode'
 import type { BarcodeElement } from '@/plugins/barcode/barcode'
@@ -128,6 +129,15 @@ function renderCurve(element: CurveElement): { defs: string; body: string } {
   return { defs: '', body: wrapTransform(element, path) }
 }
 
+function renderEllipse(element: EllipseElement): { defs: string; body: string } {
+  const width = element.width
+  const height = element.height
+  const strokeWidth = Math.max(0, element.strokeWidth)
+  const stroke = element.stroke || 'none'
+  const ellipse = `<ellipse cx="${fmt(width / 2)}" cy="${fmt(height / 2)}" rx="${fmt(width / 2)}" ry="${fmt(height / 2)}" fill="${element.fill || 'none'}" stroke="${stroke}" stroke-width="${fmt(strokeWidth)}" />`
+  return { defs: '', body: wrapTransform(element, ellipse) }
+}
+
 function renderImage(element: ImageElement, href: string): { defs: string; body: string } {
   const width = element.width
   const height = element.height
@@ -220,6 +230,9 @@ export async function buildSvgString(
         break
       case 'curve':
         result = renderCurve(element as CurveElement)
+        break
+      case 'ellipse':
+        result = renderEllipse(element as EllipseElement)
         break
       case 'image':
         result = renderImage(element as ImageElement, await resolveImageHref((element as ImageElement).src))

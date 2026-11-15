@@ -18,9 +18,13 @@
 ## 特性
 
 - **插件化架构** - 核心功能与图形元素均以插件形式注册，按需启用；`GraphicPlugin<T>` 抽象基类简化自定义插件开发
-- **5 种图形元素** - 矩形、文本、线条、二维码、条形码
+- **8 种图形元素** - 矩形、文本、线条、二维码、条形码、图片、曲线、椭圆/圆
+- **圆/椭圆** - 支持正圆与椭圆，可配置填充色、边框色与边框粗细
+- **矩形背景图片** - 支持 URL / data URL / 本地上传背景图，自动拉伸适配并支持清除
+- **文本排版** - 字体族、加粗、斜体设置，JSON 导入导出后属性不丢失
+- **二维码高级设置** - 支持纠错等级（L/M/Q/H）与中心图标（URL / data URL / 本地上传）
 - **撤销/重做** - 基于命令模式，所有修改操作可逆
-- **导入/导出** - JSON 序列化、PNG/JPG 图片、PDF 文档
+- **导入/导出** - JSON 序列化、PNG/JPG 图片、PDF 文档、SVG 矢量图
 - **对齐与分布** - 左/右/上/下/居中对齐、水平/垂直均分
 - **标尺与缩放** - 毫米级精度标尺、可配置 DPM（每毫米点数）
 - **事件驱动** - 类型安全的事件系统，插件间松耦合通信
@@ -81,6 +85,9 @@ import {
   QrcodePlugin,
   BarcodePlugin,
   LinePlugin,
+  ImagePlugin,
+  CurvePlugin,
+  EllipsePlugin,
 } from 'vkedit'
 
 const host = createEditorHost()
@@ -92,6 +99,9 @@ host
   .installPlugin('qr-plugin', QrcodePlugin)
   .installPlugin('barcode-plugin', BarcodePlugin)
   .installPlugin('line-plugin', LinePlugin)
+  .installPlugin('image-plugin', ImagePlugin)
+  .installPlugin('curve-plugin', CurvePlugin)
+  .installPlugin('ellipse-plugin', EllipsePlugin)
 
 // 设置画布尺寸（A4 纸张，DPM = 8）
 host.setStatus({
