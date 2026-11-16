@@ -5,7 +5,6 @@
     :text="element.text"
     :fill="element.fill"
     :font-size="element.fontSize"
-    :font-family="element.fontFamily"
     :align="element.align"
     :font-style="element.fontStyle"
     :vertical-align="element.verticalAlign"

@@ -1,5 +1,6 @@
 import { BaseGraphicElement, type BaseGraphicElementOptions } from '@/types/base-graphic-element'
 import { GraphicPlugin } from '@/types/graphic-plugin'
+import type { IFontStyle } from '@/types'
 import PropertyPanel from './PropertyPanel.vue'
 import Shape from './Shape.vue'
 import IconTextFields from '~icons/ph/text-aa-light'
@@ -12,6 +13,7 @@ export interface TextOptions extends BaseGraphicElementOptions {
   text?: string
   fontSize?: number
   letterSpacingMM?: number
+  /** @deprecated 字体已固定为 Alibaba PuHuiTi，传入会被忽略 */
   fontFamily?: string
   align?: 'left' | 'center' | 'right' | 'justify'
   verticalAlign?: 'top' | 'middle' | 'bottom'
@@ -24,15 +26,60 @@ export interface TextOptions extends BaseGraphicElementOptions {
 
 export class TextElement extends BaseGraphicElement {
   public type = 'text'
-  public text: string = '新建文本'
+  private _text: string = '新建文本'
   public fontSize: number = 20
   public letterSpacingMM: number = 0
-  public fontFamily: string = 'Arial'
+  private _fontFamily: string = 'Alibaba PuHuiTi'
   public align: 'left' | 'center' | 'right' | 'justify' = 'left'
   public verticalAlign: 'top' | 'middle' | 'bottom' = 'bottom'
-  public fontStyle: 'normal' | 'italic' | 'bold' | '500' | 'italic bold' = 'normal'
+  private _fontStyle: IFontStyle = 'normal'
   public fill: string = '#000000'
   public variable: boolean = false
+
+  public get text(): string {
+    return this._text
+  }
+
+  public set text(value: string) {
+    this._text = value
+    this.normalizeFontStyleForCjk()
+  }
+
+  public get fontFamily(): string {
+    return this._fontFamily
+  }
+
+  public set fontFamily(_value: string) {
+    // 字体固定为 Alibaba PuHuiTi，不可修改
+    this._fontFamily = 'Alibaba PuHuiTi'
+  }
+
+  public get fontStyle(): IFontStyle {
+    return this._fontStyle
+  }
+
+  public set fontStyle(value: IFontStyle) {
+    const raw = String(value ?? 'normal').toLowerCase()
+    if (raw === '500') {
+      this._fontStyle = '500'
+    } else {
+      const hasBold = raw.includes('bold')
+      const hasItalic = raw.includes('italic')
+      this._fontStyle = hasBold && hasItalic ? 'italic bold' : hasBold ? 'bold' : hasItalic ? 'italic' : 'normal'
+    }
+    this.normalizeFontStyleForCjk()
+  }
+
+  private hasCjkText(): boolean {
+    return /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(this._text)
+  }
+
+  private normalizeFontStyleForCjk(): void {
+    // 中文不允许使用斜体样式；若当前为 italic，自动降为 normal/bold
+    if (this.hasCjkText() && this._fontStyle.includes('italic')) {
+      this._fontStyle = this._fontStyle.includes('bold') ? 'bold' : 'normal'
+    }
+  }
 
   constructor(host:EditorHost,options: Partial<TextOptions> = {}) {
     super(host,{
@@ -84,7 +131,8 @@ export class TextElement extends BaseGraphicElement {
     this.text = typeof data.text === 'string' ? data.text : '新建文本'
     this.fontSize = typeof data.fontSize === 'number' ? data.fontSize : 20
     this.letterSpacingMM = typeof data.letterSpacingMM === 'number' ? data.letterSpacingMM : 0
-    this.fontFamily = typeof data.fontFamily === 'string' ? data.fontFamily : 'Arial'
+    // 字体固定为 Alibaba PuHuiTi，忽略旧 JSON 中的 fontFamily
+    this.fontFamily = 'Alibaba PuHuiTi'
     this.align = ['left', 'center', 'right', 'justify'].includes(String(data.align))
       ? (data.align as TextElement['align'])
       : 'left'

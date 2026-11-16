@@ -1,6 +1,12 @@
 import jsPDF from 'jspdf'
 import 'svg2pdf.js'
-import cjkFontUrl from '@/assets/fonts/NotoSansSC-Regular.ttf?no-inline'
+
+/** assets/fonts 目录下所有 TTF 字体文件，打包时保持为独立资源（?no-inline） */
+const cjkFontModules = import.meta.glob<string>('../assets/fonts/*.ttf', {
+  eager: true,
+  query: '?no-inline',
+  import: 'default',
+})
 
 export interface PdfSvgPage {
   svg: string
@@ -20,13 +26,74 @@ export interface PdfFontInput {
 export interface CreatePdfOptions {
   /** 自定义字体注册表；会在导出时自动注册到本次 PDF */
   fonts?: PdfFontInput[]
-  /** 用于 SVG 中非 ASCII 文本的字体族；默认使用内置 NotoSansSC */
+  /** 用于 SVG 中非 ASCII 文本的字体族；默认使用 assets/fonts 下的 Alibaba PuHuiTi */
   cjkFontFamily?: string
-  /** 是否启用内置 Noto Sans SC 字体，默认 true */
+  /** 是否启用内置字体（自动注册 assets/fonts 下所有字体），默认 true */
   enableDefaultCjkFont?: boolean
 }
 
-export const DEFAULT_CJK_FONT_FAMILY = 'NotoSansSC'
+export const DEFAULT_CJK_FONT_FAMILY = 'Alibaba PuHuiTi'
+
+/** 常见字重后缀到 font-weight 的映射 */
+const FONT_WEIGHT_ALIASES: Record<string, number> = {
+  thin: 100,
+  hairline: 100,
+  light: 300,
+  regular: 400,
+  regularl3: 400,
+  medium: 500,
+  semibold: 600,
+  demibold: 600,
+  bold: 700,
+  extrabold: 800,
+  heavy: 900,
+  black: 900,
+  italic: 400,
+  bolditalic: 700,
+  oblique: 400,
+}
+
+interface ParsedFontFileName {
+  family: string
+  fontStyle: 'normal' | 'italic'
+  fontWeight: number
+}
+
+/** 从字体文件名推断 font-family / font-style / font-weight */
+function parseFontFileName(fileName: string): ParsedFontFileName {
+  const base = fileName.replace(/\.(ttf|otf)$/i, '')
+  const lower = base.toLowerCase()
+  const weightKeys = Object.keys(FONT_WEIGHT_ALIASES).sort((a, b) => b.length - a.length)
+
+  let fontStyle: 'normal' | 'italic' = 'normal'
+  let fontWeight = 400
+
+  for (const key of weightKeys) {
+    if (lower.endsWith(`-${key}`)) {
+      fontWeight = FONT_WEIGHT_ALIASES[key]
+      if (/italic|oblique/.test(key)) {
+        fontStyle = 'italic'
+      }
+      break
+    }
+  }
+
+  let family = base
+  for (const key of weightKeys) {
+    family = family.replace(new RegExp(`-${key}$`, 'i'), '')
+  }
+  family = family.replace(/-\d+/g, '')
+  // 与 TextElement / DEFAULT_CJK_FONT_FAMILY 保持一致：字体族使用带空格的名称
+  if (family === 'AlibabaPuHuiTi') {
+    family = 'Alibaba PuHuiTi'
+  }
+
+  return {
+    family: family || base,
+    fontStyle,
+    fontWeight,
+  }
+}
 
 interface RegisteredFont {
   family: string
@@ -108,10 +175,19 @@ export async function registerPdfFont(font: PdfFontInput): Promise<string> {
 
 function ensureDefaultCjkFont(): Promise<void> {
   if (!defaultCjkFontPromise) {
-    defaultCjkFontPromise = registerPdfFont({
-      family: DEFAULT_CJK_FONT_FAMILY,
-      src: cjkFontUrl,
-    })
+    defaultCjkFontPromise = (async () => {
+      // 自动注册 assets/fonts 目录下的所有字体文件，并根据文件名推断 family / style / weight
+      for (const [path, url] of Object.entries(cjkFontModules)) {
+        const fileName = path.split('/').pop() ?? path
+        const { family, fontStyle, fontWeight } = parseFontFileName(fileName)
+        await registerPdfFont({
+          family,
+          src: url,
+          fontStyle,
+          fontWeight,
+        })
+      }
+    })()
       .then(() => undefined)
       .catch((error) => {
         defaultCjkFontPromise = null
@@ -244,7 +320,7 @@ export async function addSvgToPdfPage(
 
 /**
  * 将多页 SVG 矢量渲染为 PDF。
- * 页面包含中文等非 ASCII 字符时，会先注入已注册的中文字体，再交给 svg2pdf 矢量直出。
+ * 页面会先注入已注册的中文字体，再交给 svg2pdf 矢量直出。
  */
 export async function createPdfFromSvgPages(
   pages: PdfSvgPage[],
@@ -254,23 +330,20 @@ export async function createPdfFromSvgPages(
     throw new Error('没有可导出的 PDF 页面')
   }
 
-  const hasNonAscii = pages.some((page) => containsNonAsciiText(page.svg))
+  //const hasNonAscii = pages.some((page) => containsNonAsciiText(page.svg))
   const enableDefaultCjkFont = options.enableDefaultCjkFont !== false
   const cjkFontFamily =
-    options.cjkFontFamily || (enableDefaultCjkFont ? DEFAULT_CJK_FONT_FAMILY : undefined)
-
-  if (hasNonAscii) {
-    if (options.fonts && options.fonts.length > 0) {
-      await Promise.all(options.fonts.map((font) => registerPdfFont(font)))
-    }
-    if (enableDefaultCjkFont) {
-      await ensureDefaultCjkFont()
-    }
-    if (!cjkFontFamily || !hasRegisteredFontFamily(cjkFontFamily)) {
-      throw new Error(
-        '导出中文 PDF 前需要注册中文字体：请调用 registerPdfFont({ family, src }) 或传入 createPdfFromSvgPages 的 fonts 参数',
-      )
-    }
+  options.cjkFontFamily || (enableDefaultCjkFont ? DEFAULT_CJK_FONT_FAMILY : undefined)
+  if (options.fonts && options.fonts.length > 0) {
+    await Promise.all(options.fonts.map((font) => registerPdfFont(font)))
+  }
+  if (enableDefaultCjkFont) {
+    await ensureDefaultCjkFont()
+  }
+  if (!cjkFontFamily || !hasRegisteredFontFamily(cjkFontFamily)) {
+    throw new Error(
+      '导出中文 PDF 前需要注册中文字体：请调用 registerPdfFont({ family, src }) 或传入 createPdfFromSvgPages 的 fonts 参数',
+    )
   }
 
   const first = pages[0]

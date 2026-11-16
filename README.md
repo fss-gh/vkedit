@@ -21,7 +21,7 @@
 - **8 种图形元素** - 矩形、文本、线条、二维码、条形码、图片、曲线、椭圆/圆
 - **圆/椭圆** - 支持正圆与椭圆，可配置填充色、边框色与边框粗细
 - **矩形背景图片** - 支持 URL / data URL / 本地上传背景图，自动拉伸适配并支持清除
-- **文本排版** - 字体族、加粗、斜体设置，JSON 导入导出后属性不丢失
+- **文本排版** - 字体固定为 Alibaba PuHuiTi（不可修改，内置字体资源，无需系统安装），支持加粗、对齐、字间距等设置；中文内容不允许使用斜体，JSON 导入导出后属性不丢失
 - **二维码高级设置** - 支持纠错等级（L/M/Q/H）与中心图标（URL / data URL / 本地上传）
 - **业务打印** - 通过 `printBusinessData()` 将打印数据按 `displayName` 绑定填充文本/二维码/条码，逐条生成 PDF，支持浏览器打印预览，也支持通过 PrintBridge 兼容接口静默 PDF 打印（`POST /api/print`）
 - **撤销/重做** - 基于命令模式，所有修改操作可逆
@@ -149,7 +149,7 @@ import 'vkedit/dist/vkedit.css'
 vkedit 通过 `printBusinessData()` 支持两种打印方式：
 
 - **浏览器打印**：不传 `printerAddress`，生成 PDF 后弹出浏览器打印预览；
-- **PrintBridge 静默打印**：传入 `printerAddress`，生成 PDF 后以 base64 形式静默发送到本地打印服务，由服务端直接调用打印机，不弹出打印对话框。
+- **PrintBridge 静默打印**：传入 `printerAddress`，默认生成 PDF 后以 base64 形式静默发送到本地打印服务，由服务端直接调用打印机，不弹出打印对话框；也可以指定 `transport: 'svg'`，逐条把 SVG 以 base64 发送，由服务端渲染 PDF 后打印。
 
 ### 接口约定
 
@@ -179,19 +179,37 @@ Content-Type: application/json
 - `copies`：打印份数，当前固定为 `1`；
 - `mediaWidth` / `mediaHeight`：纸张尺寸（毫米），默认取模板 `state.wmm` / `state.hmm`，缺失时根据像素尺寸与 DPM 换算。
 
+> 当使用 `transport: 'svg'` 时，`pdf` 字段为 **SVG 文件内容的 base64 编码**，由打印服务端解析并渲染成 PDF 后再打印。
+
 ### 使用示例
 
 ```ts
 import { printBusinessData } from 'vkedit'
 
+// 默认 pdf 传输：浏览器生成 PDF 后发送到打印服务
 await printBusinessData(
   data,
   json,
   'http://localhost:9120', // 打印服务地址，也可直接填 http://localhost:9120/api/print
   undefined, // PDF 字体等导出选项，可选
   'HP LaserJet', // 打印机名称，可选
+  'pdf', // 传输方式：'pdf'（默认）或 'svg'
+)
+
+// svg 传输：逐条把 SVG（base64）发送到打印服务，由服务端渲染 PDF 后打印
+await printBusinessData(
+  data,
+  json,
+  'http://localhost:9120',
+  undefined,
+  'HP LaserJet',
+  'svg',
 )
 ```
+
+> SVG 模式下，发送前 `sendSvgToPrinter` 会把 SVG 中非 ASCII 文本的 `font-family` 统一替换为 **`Alibaba PuHuiTi`**，同时保留原有的 `font-weight` / `font-style`，由服务端按字体变体渲染。`pdfOptions.cjkFontFamily` 不再影响 SVG 传输模式。
+>
+> 如果服务端使用 `svg2pdf_py`（svglib），请先在服务端安装并注册 Alibaba PuHuiTi 及其 **Bold 等变体**，否则加粗/斜体可能无法生效。
 
 `printerAddress` 支持两种写法：
 

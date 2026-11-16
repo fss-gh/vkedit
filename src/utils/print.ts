@@ -1,6 +1,6 @@
 import { buildSvgString } from '@/plugins/export/svg-export'
 import type { BaseGraphicElement } from '@/types/base-graphic-element'
-import { createPdfFromSvgPages, type CreatePdfOptions, type PdfSvgPage } from './pdf'
+import { createPdfFromSvgPages, DEFAULT_CJK_FONT_FAMILY, type CreatePdfOptions, type PdfSvgPage } from './pdf'
 import type { EditorHost } from '@/core'
 import { RectElement } from '@/plugins/rect/rect'
 import { TextElement } from '@/plugins/text/text'
@@ -13,6 +13,9 @@ import { EllipseElement } from '@/plugins/ellipse/ellipse'
 
 /** 打印数据项：以 displayName 作为绑定 key */
 export type PrintDataItem = Record<string, string | number | boolean | null | undefined>
+
+/** 打印传输方式：pdf = 浏览器生成 PDF 后发送；svg = 逐条发送 SVG，由打印服务端渲染 PDF */
+export type PrintTransport = 'pdf' | 'svg'
 
 interface PrintTemplateJson {
   state?: {
@@ -94,11 +97,13 @@ function createElements(
   return elements
 }
 
-interface PrintServicePayload {
+export interface PrintServicePayload {
   printer?: string
   copies?: number
   mediaWidth?: number
   mediaHeight?: number
+  /** @deprecated SVG 中文字体已固定为 Alibaba PuHuiTi，此字段将被忽略 */
+  fontFamily?: string
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -112,6 +117,33 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary)
 }
 
+/**
+ * 将 SVG 中文本的 font-family 替换为指定字体族（当前固定使用 Alibaba PuHuiTi）。
+ * 仅保留字体族替换，不会修改 font-weight / font-style，便于 svg2pdf_py 等
+ * 服务端转换器按已注册的 Bold / Italic 字体变体渲染。
+ */
+function injectSvgFontFamily(svg: string, fontFamily: string): string {
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    return svg
+  }
+
+  try {
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml')
+    if (doc.querySelector('parsererror')) {
+      return svg
+    }
+
+    const safeFontFamily = /[\s,]/.test(fontFamily) ? `"${fontFamily}"` : fontFamily
+    doc.querySelectorAll('text, tspan').forEach((node) => {
+      node.setAttribute('font-family', safeFontFamily)
+    })
+
+    return new XMLSerializer().serializeToString(doc.documentElement)
+  } catch {
+    return svg
+  }
+}
+
 function buildPrintServiceUrl(printerAddress: string): string {
   const trimmed = printerAddress.trim().replace(/\/+$/, '')
   if (!trimmed) {
@@ -123,19 +155,18 @@ function buildPrintServiceUrl(printerAddress: string): string {
   return `${trimmed}/api/print`
 }
 
-async function sendPdfToPrinter(
-  blob: Blob,
+async function sendBase64ToPrinter(
+  base64: string,
   printerAddress: string,
   payload: PrintServicePayload = {},
 ): Promise<void> {
-  const pdfBase64 = await blobToBase64(blob)
   const response = await fetch(buildPrintServiceUrl(printerAddress), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      pdf: pdfBase64,
+      pdf: base64,
       printer: payload.printer ?? '',
       copies: payload.copies ?? 1,
       mediaWidth: payload.mediaWidth ?? 0,
@@ -146,6 +177,41 @@ async function sendPdfToPrinter(
   if (!response.ok) {
     throw new Error(`打印机通讯失败：HTTP ${response.status} ${response.statusText}`)
   }
+}
+
+async function sendPdfToPrinter(
+  blob: Blob,
+  printerAddress: string,
+  payload: PrintServicePayload = {},
+): Promise<void> {
+  const pdfBase64 = await blobToBase64(blob)
+  await sendBase64ToPrinter(pdfBase64, printerAddress, payload)
+}
+
+/**
+ * 将 SVG 字符串以 base64 形式发送到打印服务。
+ *
+ * 与 sendPdfToPrinter 的区别仅在于入参：
+ * - sendPdfToPrinter 接收 PDF Blob
+ * - sendSvgToPrinter 接收 SVG 字符串
+ *
+ * 打印接口的 `pdf` 字段统一为 base64 字符串，这里即 SVG 的 base64 编码。
+ *
+ * @param svg SVG 字符串（由 buildSvgString / 导出 SVG 等生成）
+ * @param printerAddress 打印机通讯服务地址
+ * @param payload 打印机名称、份数、纸张尺寸等
+ */
+export async function sendSvgToPrinter(
+  svg: string,
+  printerAddress: string,
+  payload: PrintServicePayload = {},
+): Promise<void> {
+  // SVG 中文字体固定为 Alibaba PuHuiTi，发送前统一替换非 ASCII 文本的 font-family
+  const finalSvg = injectSvgFontFamily(svg, DEFAULT_CJK_FONT_FAMILY)
+  const svgBase64 = await blobToBase64(
+    new Blob([finalSvg], { type: 'image/svg+xml;charset=utf-8' }),
+  )
+  await sendBase64ToPrinter(svgBase64, printerAddress, payload)
 }
 
 // 保留所有用于打印的隐藏 iframe，避免在打印对话框仍打开时被提前移除导致“闪退”
@@ -216,15 +282,19 @@ function printPdfByBrowser(blob: Blob): void {
 }
 
 /**
- * 业务打印函数：将打印数据逐条填充到 vkedit JSON 模板中，
- * 每条数据生成一页 PDF，最终输出 PDF 文件。
+ * 业务打印函数：将打印数据逐条填充到 vkedit JSON 模板中。
+ *
+ * 默认每条数据生成一页 PDF；设置 transport 为 'svg' 且传入 printerAddress 时，
+ * 会改为逐条把 SVG（base64）发送到打印服务端，由服务端渲染 PDF 后打印，
+ * 浏览器侧不再生成 PDF。
  *
  * @param data 打印数据数组，每个数据项以元素 displayName 作为绑定 key
  * @param json vkedit 导出的 JSON 字符串
  * @param printerAddress 打印机通讯服务地址；为空时使用浏览器打印
- * @param pdfOptions PDF 字体等导出选项
+ * @param pdfOptions PDF 字体等导出选项；pdf 模式用于本地生成 PDF，svg 模式中文字体固定为 Alibaba PuHuiTi，不依赖此参数
  * @param printerName 打印机名称，仅在 printerAddress 非空时发送到打印服务
- * @returns 生成的 PDF Blob
+ * @param transport 打印传输方式：'pdf'（默认）或 'svg'
+ * @returns 生成的 PDF Blob；SVG 传输模式不生成本地 PDF，返回 null
  */
 export async function printBusinessData(
   data: PrintDataItem[],
@@ -232,7 +302,8 @@ export async function printBusinessData(
   printerAddress?: string,
   pdfOptions?: CreatePdfOptions,
   printerName?: string,
-): Promise<Blob> {
+  transport: PrintTransport = 'pdf',
+): Promise<Blob | null> {
   if (!Array.isArray(data)) {
     throw new Error('打印数据必须是数组')
   }
@@ -250,6 +321,7 @@ export async function printBusinessData(
   // 仅用于构建元素实例的宿主上下文，打印渲染只需 dpm 换算像素
   const printHost = { status: { dpm } } as unknown as EditorHost
 
+  const svgMode = transport === 'svg' && Boolean(printerAddress)
   const pdfPages: PdfSvgPage[] = []
 
   for (let index = 0; index < data.length; index++) {
@@ -259,7 +331,23 @@ export async function printBusinessData(
 
     const pageElements = createElements(pageJsonElements, printHost)
     const svg = await buildSvgString(pageElements, width, height)
-    pdfPages.push({ svg, width, height })
+
+    if (svgMode && printerAddress) {
+      // 逐条发送 SVG，交给打印服务端渲染 PDF 并打印
+      await sendSvgToPrinter(svg, printerAddress, {
+        printer: printerName,
+        copies: 1,
+        mediaWidth,
+        mediaHeight,
+      })
+    } else {
+      pdfPages.push({ svg, width, height })
+    }
+  }
+
+  // SVG 模式已在循环中逐条发送，不需要在浏览器生成 PDF
+  if (svgMode) {
+    return null
   }
 
   const pdf = await createPdfFromSvgPages(pdfPages, pdfOptions)

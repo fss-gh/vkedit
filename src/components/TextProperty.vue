@@ -5,7 +5,7 @@
       :rows="3"
       :model-value="text"
       :placeholder="'请输入文本，支持回车换行'"
-      @update:model-value="(value: string) => emit('update', 'text', value)"
+      @update:model-value="handleTextUpdate"
     ></VkTextarea>
   </div>
   <div class="vkedit-property__col-full" style="display: flex; align-items: center; justify-content: space-between">
@@ -14,19 +14,6 @@
       :model-value="variable ?? false"
       @update:model-value="(value) => emit('update', 'variable', value)"
     />
-  </div>
-  <div v-if="fontFamily !== undefined" class="vkedit-property__col-full" style="display: flex; flex-direction: column; gap: 4px">
-    <VkLabel>字体</VkLabel>
-    <VkSelect
-      :model-value="fontFamily"
-      @update:model-value="(value: string) => emit('update', 'fontFamily', value)"
-    >
-      <option value="">默认字体</option>
-      <option v-for="font in fontOptions" :key="font" :value="font">{{ font }}</option>
-      <option v-if="fontFamily && !fontOptions.includes(fontFamily)" :value="fontFamily">
-        {{ fontFamily }}
-      </option>
-    </VkSelect>
   </div>
   <div class="vkedit-property__col-full" style="display: flex; flex-direction: column; gap: 4px">
     <VkLabel>文字间距</VkLabel>
@@ -61,7 +48,8 @@
     </VkToggle>
     <VkToggle
       size="sm"
-      :model-value="fontStyle?.includes('italic') ?? false"
+      :disabled="isCjkText"
+      :model-value="(fontStyle?.includes('italic') ?? false) && !isCjkText"
       @update:model-value="toggleItalic"
     >
       <IconFormatItalic style="width: 20px; height: 20px" />
@@ -102,7 +90,8 @@
 </template>
 
 <script setup lang="ts">
-import { VkToggle, VkLabel, VkInputMM, VkInputNumberMM, VkColorPicker, VkTextarea, VkSelect, VkSwitch } from '@/components/ui'
+import { computed } from 'vue'
+import { VkToggle, VkLabel, VkInputMM, VkInputNumberMM, VkColorPicker, VkTextarea, VkSwitch } from '@/components/ui'
 import IconFormatBold from '~icons/ph/text-b-light'
 import IconFormatItalic from '~icons/ph/text-italic-light'
 import IconAlignJustifyFlexStart from '~icons/ph/text-align-left-light'
@@ -118,7 +107,6 @@ const {
   text,
   fill,
   fontSize,
-  fontFamily,
   align,
   verticalAlign,
   fontStyle,
@@ -129,7 +117,6 @@ const {
   fill?: string
   fontSize: number
   letterSpacingMM?: number
-  fontFamily?: string
   align: IAlign
   verticalAlign: IVerticalAlign
   fontStyle?: IFontStyle // 文字加粗
@@ -140,6 +127,9 @@ const emit = defineEmits<{
   update: [property: string, value: string | number | boolean | undefined]
 }>()
 
+const CJK_TEXT_PATTERN = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/
+const isCjkText = computed(() => CJK_TEXT_PATTERN.test(text ?? ''))
+
 function buildFontStyle(bold: boolean, italic: boolean): IFontStyle {
   if (bold && italic) return 'italic bold'
   if (bold) return 'bold'
@@ -147,34 +137,27 @@ function buildFontStyle(bold: boolean, italic: boolean): IFontStyle {
   return 'normal'
 }
 
+function handleTextUpdate(value: string) {
+  emit('update', 'text', value)
+
+  // 中文不允许斜体：输入中文时自动移除 italic
+  if (CJK_TEXT_PATTERN.test(value) && fontStyle?.includes('italic')) {
+    const hasBold = fontStyle.includes('bold')
+    emit('update', 'fontStyle', hasBold ? 'bold' : 'normal')
+  }
+}
+
 function toggleBold(value: boolean) {
   const hasItalic = fontStyle?.includes('italic') ?? false
-  emit('update', 'fontStyle', buildFontStyle(value, hasItalic))
+  emit('update', 'fontStyle', buildFontStyle(value, hasItalic && !isCjkText.value))
 }
 
 function toggleItalic(value: boolean) {
+  // 中文不允许使用斜体样式
+  if (isCjkText.value) return
   const hasBold = fontStyle?.includes('bold') ?? false
   emit('update', 'fontStyle', buildFontStyle(hasBold, value))
 }
-
-const fontOptions = [
-  'Arial',
-  'Times New Roman',
-  'Courier New',
-  'Georgia',
-  'Verdana',
-  'Tahoma',
-  '宋体',
-  '黑体',
-  '楷体',
-  '微软雅黑',
-  'SimSun',
-  'SimHei',
-  'Microsoft YaHei',
-  'sans-serif',
-  'serif',
-  'monospace',
-]
 
 // 获取 hostState 用于 dpm
 const { hostState } = useHostState(host)
