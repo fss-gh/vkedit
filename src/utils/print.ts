@@ -1,6 +1,12 @@
 import { buildSvgString } from '@/plugins/export/svg-export'
 import type { BaseGraphicElement } from '@/types/base-graphic-element'
-import { createPdfFromSvgPages, DEFAULT_CJK_FONT_FAMILY, type CreatePdfOptions, type PdfSvgPage } from './pdf'
+import {
+  createPdfFromSvgPages,
+  DEFAULT_CJK_FONT_FAMILY,
+  DEFAULT_LATIN_FONT_FAMILY,
+  type CreatePdfOptions,
+  type PdfSvgPage,
+} from './pdf'
 import type { EditorHost } from '@/core'
 import { RectElement } from '@/plugins/rect/rect'
 import { TextElement } from '@/plugins/text/text'
@@ -102,7 +108,7 @@ export interface PrintServicePayload {
   copies?: number
   mediaWidth?: number
   mediaHeight?: number
-  /** @deprecated SVG 中文字体已固定为 Alibaba PuHuiTi，此字段将被忽略 */
+  /** @deprecated SVG 字体已固定为 Alibaba Sans + Alibaba PuHuiTi，此字段将被忽略 */
   fontFamily?: string
 }
 
@@ -118,11 +124,17 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /**
- * 将 SVG 中文本的 font-family 替换为指定字体族（当前固定使用 Alibaba PuHuiTi）。
+ * 将 SVG 中文本的 font-family 替换为内置字体：
+ * - 含中文等非 ASCII 字符的文本使用 Alibaba PuHuiTi
+ * - 纯西文（ASCII）文本使用 Alibaba Sans
  * 仅保留字体族替换，不会修改 font-weight / font-style，便于 svg2pdf_py 等
  * 服务端转换器按已注册的 Bold / Italic 字体变体渲染。
  */
-function injectSvgFontFamily(svg: string, fontFamily: string): string {
+function injectSvgFontFamily(
+  svg: string,
+  cjkFontFamily: string,
+  latinFontFamily?: string,
+): string {
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     return svg
   }
@@ -133,8 +145,13 @@ function injectSvgFontFamily(svg: string, fontFamily: string): string {
       return svg
     }
 
-    const safeFontFamily = /[\s,]/.test(fontFamily) ? `"${fontFamily}"` : fontFamily
     doc.querySelectorAll('text, tspan').forEach((node) => {
+      const text = node.textContent || ''
+      const isNonAscii = /[^\x00-\x7F]/.test(text)
+      const fontFamily = isNonAscii ? cjkFontFamily : latinFontFamily || cjkFontFamily
+      if (!fontFamily) return
+
+      const safeFontFamily = /[\s,]/.test(fontFamily) ? `"${fontFamily}"` : fontFamily
       node.setAttribute('font-family', safeFontFamily)
     })
 
@@ -206,8 +223,8 @@ export async function sendSvgToPrinter(
   printerAddress: string,
   payload: PrintServicePayload = {},
 ): Promise<void> {
-  // SVG 中文字体固定为 Alibaba PuHuiTi，发送前统一替换非 ASCII 文本的 font-family
-  const finalSvg = injectSvgFontFamily(svg, DEFAULT_CJK_FONT_FAMILY)
+  // SVG 发送前统一替换为内置字体：中文使用 Alibaba PuHuiTi，西文使用 Alibaba Sans
+  const finalSvg = injectSvgFontFamily(svg, DEFAULT_CJK_FONT_FAMILY, DEFAULT_LATIN_FONT_FAMILY)
   const svgBase64 = await blobToBase64(
     new Blob([finalSvg], { type: 'image/svg+xml;charset=utf-8' }),
   )
@@ -291,7 +308,7 @@ function printPdfByBrowser(blob: Blob): void {
  * @param data 打印数据数组，每个数据项以元素 displayName 作为绑定 key
  * @param json vkedit 导出的 JSON 字符串
  * @param printerAddress 打印机通讯服务地址；为空时使用浏览器打印
- * @param pdfOptions PDF 字体等导出选项；pdf 模式用于本地生成 PDF，svg 模式中文字体固定为 Alibaba PuHuiTi，不依赖此参数
+ * @param pdfOptions PDF 字体等导出选项；pdf 模式用于本地生成 PDF，svg 模式字体固定为 Alibaba Sans + Alibaba PuHuiTi，不依赖此参数
  * @param printerName 打印机名称，仅在 printerAddress 非空时发送到打印服务
  * @param transport 打印传输方式：'pdf'（默认）或 'svg'
  * @returns 生成的 PDF Blob；SVG 传输模式不生成本地 PDF，返回 null

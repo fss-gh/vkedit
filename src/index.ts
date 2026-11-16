@@ -1,7 +1,7 @@
 import '@/styles/index.scss'
-import { ensureAlibabaPuHuiTiFont } from './utils/fonts'
+import { ensureBuiltinFonts } from './utils/fonts'
 
-ensureAlibabaPuHuiTiFont()
+ensureBuiltinFonts()
 
 export * from './commands'
 export * from './components'

@@ -21,7 +21,7 @@
 - **8 种图形元素** - 矩形、文本、线条、二维码、条形码、图片、曲线、椭圆/圆
 - **圆/椭圆** - 支持正圆与椭圆，可配置填充色、边框色与边框粗细
 - **矩形背景图片** - 支持 URL / data URL / 本地上传背景图，自动拉伸适配并支持清除
-- **文本排版** - 字体固定为 Alibaba PuHuiTi（不可修改，内置字体资源，无需系统安装），支持加粗、对齐、字间距等设置；中文内容不允许使用斜体，JSON 导入导出后属性不丢失
+- **文本排版** - 字体固定为 Alibaba Sans（西文）+ Alibaba PuHuiTi（中文）（不可修改，内置字体资源，无需系统安装），支持加粗、对齐、字间距等设置；中文内容不允许使用斜体，JSON 导入导出后属性不丢失
 - **二维码高级设置** - 支持纠错等级（L/M/Q/H）与中心图标（URL / data URL / 本地上传）
 - **业务打印** - 通过 `printBusinessData()` 将打印数据按 `displayName` 绑定填充文本/二维码/条码，逐条生成 PDF，支持浏览器打印预览，也支持通过 PrintBridge 兼容接口静默 PDF 打印（`POST /api/print`）
 - **撤销/重做** - 基于命令模式，所有修改操作可逆
@@ -207,9 +207,9 @@ await printBusinessData(
 )
 ```
 
-> SVG 模式下，发送前 `sendSvgToPrinter` 会把 SVG 中非 ASCII 文本的 `font-family` 统一替换为 **`Alibaba PuHuiTi`**，同时保留原有的 `font-weight` / `font-style`，由服务端按字体变体渲染。`pdfOptions.cjkFontFamily` 不再影响 SVG 传输模式。
+> SVG 模式下，发送前 `sendSvgToPrinter` 会按文本内容替换 `font-family`：中文使用 **`Alibaba PuHuiTi`**，西文使用 **`Alibaba Sans`**，同时保留原有的 `font-weight` / `font-style`，由服务端按字体变体渲染。`pdfOptions` 中的字体参数不再影响 SVG 传输模式。
 >
-> 如果服务端使用 `svg2pdf_py`（svglib），请先在服务端安装并注册 Alibaba PuHuiTi 及其 **Bold 等变体**，否则加粗/斜体可能无法生效。
+> 如果服务端使用 `svg2pdf_py`（svglib），请先在服务端安装并注册 Alibaba PuHuiTi、Alibaba Sans 及其 **Bold/Italic 等变体**，否则加粗/斜体可能无法生效。
 
 `printerAddress` 支持两种写法：
 

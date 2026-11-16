@@ -98,7 +98,7 @@ import IconSettings from '~icons/ph/gear-six-light'
 import type { EditorHost } from '@/core'
 import { onMounted, onUnmounted, ref } from 'vue'
 import type { EditorLifecyclePayload } from '@/types'
-import { ensureAlibabaPuHuiTiFont } from '@/utils/fonts'
+import { ensureBuiltinFonts } from '@/utils/fonts'
 
 const {
   host,
@@ -172,7 +172,7 @@ const onResize = () => {
 
 // 绑定舞台重绘事件
 onMounted(() => {
-  ensureAlibabaPuHuiTiFont()
+  ensureBuiltinFonts()
   if (!host) return
   host.on('stage:redraw', () => {
     // 强制更改key 以触发StageView重绘

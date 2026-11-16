@@ -4,6 +4,7 @@ import type { IFontStyle } from '@/types'
 import PropertyPanel from './PropertyPanel.vue'
 import Shape from './Shape.vue'
 import IconTextFields from '~icons/ph/text-aa-light'
+import { DEFAULT_TEXT_FONT_FAMILY } from '@/utils/fonts'
 import TextContextMenu from './TextContextMenu.vue'
 import type { EditorHost } from '@/core'
 
@@ -13,7 +14,7 @@ export interface TextOptions extends BaseGraphicElementOptions {
   text?: string
   fontSize?: number
   letterSpacingMM?: number
-  /** @deprecated 字体已固定为 Alibaba PuHuiTi，传入会被忽略 */
+  /** @deprecated 字体已固定为 Alibaba Sans + Alibaba PuHuiTi，传入会被忽略 */
   fontFamily?: string
   align?: 'left' | 'center' | 'right' | 'justify'
   verticalAlign?: 'top' | 'middle' | 'bottom'
@@ -29,7 +30,7 @@ export class TextElement extends BaseGraphicElement {
   private _text: string = '新建文本'
   public fontSize: number = 20
   public letterSpacingMM: number = 0
-  private _fontFamily: string = 'Alibaba PuHuiTi'
+  private _fontFamily: string = DEFAULT_TEXT_FONT_FAMILY
   public align: 'left' | 'center' | 'right' | 'justify' = 'left'
   public verticalAlign: 'top' | 'middle' | 'bottom' = 'bottom'
   private _fontStyle: IFontStyle = 'normal'
@@ -50,8 +51,8 @@ export class TextElement extends BaseGraphicElement {
   }
 
   public set fontFamily(_value: string) {
-    // 字体固定为 Alibaba PuHuiTi，不可修改
-    this._fontFamily = 'Alibaba PuHuiTi'
+    // 字体固定为 Alibaba Sans + Alibaba PuHuiTi，不可修改
+    this._fontFamily = DEFAULT_TEXT_FONT_FAMILY
   }
 
   public get fontStyle(): IFontStyle {
@@ -131,8 +132,8 @@ export class TextElement extends BaseGraphicElement {
     this.text = typeof data.text === 'string' ? data.text : '新建文本'
     this.fontSize = typeof data.fontSize === 'number' ? data.fontSize : 20
     this.letterSpacingMM = typeof data.letterSpacingMM === 'number' ? data.letterSpacingMM : 0
-    // 字体固定为 Alibaba PuHuiTi，忽略旧 JSON 中的 fontFamily
-    this.fontFamily = 'Alibaba PuHuiTi'
+    // 字体固定为 Alibaba Sans + Alibaba PuHuiTi，忽略旧 JSON 中的 fontFamily
+    this.fontFamily = DEFAULT_TEXT_FONT_FAMILY
     this.align = ['left', 'center', 'right', 'justify'].includes(String(data.align))
       ? (data.align as TextElement['align'])
       : 'left'
