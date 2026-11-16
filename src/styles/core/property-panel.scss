@@ -10,7 +10,7 @@
   border: 1px solid var(--vkedit-color-border);
   border-radius: var(--vkedit-radius-lg);
   box-shadow: var(--vkedit-shadow-panel);
-  max-height: calc(100vh - 64px);
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
   font-size: var(--vkedit-font-size-sm);
   color: var(--vkedit-color-text);
@@ -58,6 +58,7 @@
     }
     .vkedit-floating-property-panel__content {
       display: none;
+      min-height: 0;
     }
     .vkedit-floating-property-panel__collapsed-icon {
       display: flex;

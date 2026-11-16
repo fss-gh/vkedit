@@ -10,7 +10,7 @@
   border: var(--vkedit-border-width) solid var(--vkedit-color-border);
   border-radius: var(--vkedit-radius-lg);
   box-shadow: var(--vkedit-shadow-panel);
-  max-height: calc(100vh - 64px);
+  max-height: calc(100vh - 120px);
   font-size: var(--vkedit-font-size-sm);
   color: var(--vkedit-color-text);
   transition: width var(--vkedit-duration-normal) var(--vkedit-easing-default);

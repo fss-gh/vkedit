@@ -19,7 +19,7 @@
         <VkInput
           :model-value="printerAddress"
           placeholder="可选，如 http://localhost:9120"
-          @update:model-value="(value) => (printerAddress = String(value ?? ''))"
+          @update:model-value="(value:any) => (printerAddress = String(value ?? ''))"
         />
       </div>
       <div class="print-menu__row">
@@ -146,7 +146,7 @@ async function runPrint() {
       printerAddress.value.trim() || undefined,
       undefined,
       printerName.value.trim() || undefined,
-      'svg'
+      'pdf'
     )
   } catch (error) {
     console.error(error)
