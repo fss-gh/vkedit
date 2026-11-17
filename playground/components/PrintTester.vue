@@ -146,7 +146,14 @@ async function runPrint() {
       printerAddress.value.trim() || undefined,
       undefined,
       printerName.value.trim() || undefined,
-      'svg'
+      'pdf',
+      {
+        rows:4,
+        cols:4,
+        rowGapMM:1.5,
+        colGapMM:1.5,
+        marginMM:1.5
+      }
     )
   } catch (error) {
     console.error(error)

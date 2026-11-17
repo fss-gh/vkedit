@@ -20,7 +20,7 @@ import { EllipseElement } from '@/plugins/ellipse/ellipse'
 /** 打印数据项：以 displayName 作为绑定 key */
 export type PrintDataItem = Record<string, string | number | boolean | null | undefined>
 
-/** 打印传输方式：pdf = 浏览器生成 PDF 后发送；svg = 逐条发送 SVG，由打印服务端渲染 PDF */
+/** 打印传输方式：pdf = 浏览器生成 PDF 后发送；svg = 逐页发送 SVG（普通打印逐条一页、宫格打印整页 SVG），由打印服务端渲染 PDF */
 export type PrintTransport = 'pdf' | 'svg'
 
 /**
@@ -390,14 +390,14 @@ function printPdfByBrowser(blob: Blob): void {
  * 浏览器侧不再生成 PDF。
  *
  * 传入 grid 参数时开启宫格打印：每页按 rows * cols 排列模板副本，每个格子填充一条
- * 数据，行/列间距使用毫米；宫格打印仅支持 pdf 传输（浏览器打印或打印接口）。
+ * 数据，行/列间距使用毫米；宫格打印支持 pdf 与接口 svg 两种传输方式。
  *
  * @param data 打印数据数组，每个数据项以元素 displayName 作为绑定 key
  * @param json vkedit 导出的 JSON 字符串
  * @param printerAddress 打印机通讯服务地址；为空时使用浏览器打印
  * @param pdfOptions PDF 字体等导出选项；pdf 模式用于本地生成 PDF，svg 模式字体固定为 Alibaba Sans + Alibaba PuHuiTi，不依赖此参数
  * @param printerName 打印机名称，仅在 printerAddress 非空时发送到打印服务
- * @param transport 打印传输方式：'pdf'（默认）或 'svg'；宫格打印仅支持 'pdf'
+ * @param transport 打印传输方式：'pdf'（默认）或 'svg'；宫格打印两种都支持
  * @param grid 宫格打印配置（rows/cols/rowGapMM/colGapMM），不传时保持逐条一页
  * @returns 生成的 PDF Blob；SVG 传输模式不生成本地 PDF，返回 null
  */
@@ -428,10 +428,6 @@ export async function printBusinessData(
   const printHost = { status: { dpm } } as unknown as EditorHost
 
   const gridEnabled = Boolean(grid)
-  if (gridEnabled && transport === 'svg') {
-    throw new Error('宫格打印仅支持 pdf 传输模式（浏览器打印或打印接口）')
-  }
-
   const svgMode = transport === 'svg' && Boolean(printerAddress)
   const pdfPages: PdfSvgPage[] = []
 
@@ -501,11 +497,21 @@ export async function printBusinessData(
         pageWidthPx,
         pageHeightPx,
       )
-      pdfPages.push({
-        svg,
-        width: pageWidthPx,
-        height: pageHeightPx,
-      })
+      if (svgMode && printerAddress) {
+        // 宫格页按整页 SVG 发送到打印服务端，由服务端渲染 PDF 并打印
+        await sendSvgToPrinter(svg, printerAddress, {
+          printer: printerName,
+          copies: 1,
+          mediaWidth,
+          mediaHeight,
+        })
+      } else {
+        pdfPages.push({
+          svg,
+          width: pageWidthPx,
+          height: pageHeightPx,
+        })
+      }
     }
   } else {
     for (let index = 0; index < data.length; index++) {

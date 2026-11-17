@@ -23,7 +23,7 @@
 - **矩形背景图片** - 支持 URL / data URL / 本地上传背景图，自动拉伸适配并支持清除
 - **文本排版** - 字体固定为 Alibaba Sans（西文）+ Alibaba PuHuiTi（中文）（不可修改，内置字体资源，无需系统安装），支持加粗、对齐、字间距等设置；中文内容不允许使用斜体，JSON 导入导出后属性不丢失
 - **二维码高级设置** - 支持纠错等级（L/M/Q/H）与中心图标（URL / data URL / 本地上传）
-- **业务打印** - 通过 `printBusinessData()` 将打印数据按 `displayName` 绑定填充文本/二维码/条码，逐条生成 PDF，支持浏览器打印预览，也支持通过 PrintBridge 兼容接口静默 PDF 打印（`POST /api/print`）；支持宫格打印：将同一模板按行列排列到一页纸上，并可设置行数、列数、行间距、列间距、页边距
+- **业务打印** - 通过 `printBusinessData()` 将打印数据按 `displayName` 绑定填充文本/二维码/条码，逐条生成 PDF，支持浏览器打印预览，也支持通过 PrintBridge 兼容接口静默打印：`pdf` 传输（`POST /api/print` 发送 PDF）与 `svg` 传输（逐页发送 SVG）；支持宫格打印：将同一模板按行列排列到一页纸上，并可设置行数、列数、行间距、列间距、页边距
 - **撤销/重做** - 基于命令模式，所有修改操作可逆
 - **导入/导出** - JSON 序列化、PNG/JPG 图片、PDF 文档、SVG 矢量图
 - **对齐与分布** - 左/右/上/下/居中对齐、水平/垂直均分
@@ -149,7 +149,7 @@ import 'vkedit/dist/vkedit.css'
 vkedit 通过 `printBusinessData()` 支持两种打印方式：
 
 - **浏览器打印**：不传 `printerAddress`，生成 PDF 后弹出浏览器打印预览；
-- **PrintBridge 静默打印**：传入 `printerAddress`，默认生成 PDF 后以 base64 形式静默发送到本地打印服务，由服务端直接调用打印机，不弹出打印对话框；也可以指定 `transport: 'svg'`，逐条把 SVG 以 base64 发送，由服务端渲染 PDF 后打印。
+- **PrintBridge 静默打印**：传入 `printerAddress`，默认生成 PDF 后以 base64 形式静默发送到本地打印服务，由服务端直接调用打印机，不弹出打印对话框；也可以指定 `transport: 'svg'`，把页面 SVG 以 base64 发送（普通打印逐条一页、宫格打印整页 SVG），由服务端渲染 PDF 后打印。
 
 ### 接口约定
 
@@ -179,7 +179,7 @@ Content-Type: application/json
 - `copies`：打印份数，当前固定为 `1`；
 - `mediaWidth` / `mediaHeight`：纸张尺寸（毫米），默认取模板 `state.wmm` / `state.hmm`，缺失时根据像素尺寸与 DPM 换算；宫格打印时按格子尺寸与间距自动计算，或使用 `GridPrintOptions.pageWidthMM` / `pageHeightMM` 指定。
 
-> 当使用 `transport: 'svg'` 时，`pdf` 字段为 **SVG 文件内容的 base64 编码**，由打印服务端解析并渲染成 PDF 后再打印。
+> 当使用 `transport: 'svg'` 时，`pdf` 字段为 **SVG 文件内容的 base64 编码**（普通打印逐条一页、宫格打印整页 SVG），由打印服务端解析并渲染成 PDF 后再打印。
 
 ### 使用示例
 
@@ -224,7 +224,7 @@ await printBusinessData(
   printerAddress,  // 为空则浏览器打印；非空则发送到 PrintBridge 接口
   undefined,
   printerName,     // 可选
-  'pdf',           // 宫格打印仅支持 pdf 传输
+  'pdf',           // 宫格打印支持 pdf 或 svg 传输
   {
     rows: 3,
     cols: 2,
@@ -237,6 +237,22 @@ await printBusinessData(
     // marginBottomMM: 5,
     // pageWidthMM: 210,         // 可选，不传则按下方规则自动计算
     // pageHeightMM: 297,
+  },
+)
+
+// 宫格打印 + 接口 SVG 传输：按整页 SVG 发送到打印服务端，由服务端渲染 PDF 后打印
+await printBusinessData(
+  data,
+  json,
+  'http://localhost:9120',
+  undefined,
+  printerName,
+  'svg',
+  {
+    rows: 3,
+    cols: 2,
+    rowGapMM: 2,
+    colGapMM: 2,
   },
 )
 ```
@@ -253,9 +269,11 @@ await printBusinessData(
 
 规则：
 
-- 数据条数超过 `rows * cols` 时，自动分多页 PDF。
-- 宫格打印仅支持 `transport: 'pdf'`；如果传入 `grid` 且 `transport: 'svg'`，会抛出错误。
-- 生成的 PDF 行为与普通打印一致：`printerAddress` 为空时浏览器打印，否则以 base64 发送到 PrintBridge 打印接口。
+- 数据条数超过 `rows * cols` 时，自动分多页（PDF 模式生成多页 PDF，SVG 模式逐页发送整页 SVG）。
+- 宫格打印支持 `transport: 'pdf'` 与 `transport: 'svg'`（SVG 模式需传入 `printerAddress`）：
+  - `pdf`：浏览器生成 PDF 后发送到 PrintBridge 接口，或本地浏览器打印；
+  - `svg`：按整页 SVG 发送到 PrintBridge 接口，由服务端渲染 PDF 后打印。
+- 打印行为与普通打印一致：`printerAddress` 为空时浏览器打印，否则发送到 PrintBridge 打印接口。
 
 `printerAddress` 支持两种写法：
 
