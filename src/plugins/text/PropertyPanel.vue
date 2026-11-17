@@ -14,7 +14,7 @@
     @update="(prop, value) => batchUpdateProperty(selection, prop, value)"
   ></TextProperty>
   <div class="vkedit-property__col-full vkedit-text-property__hint">
-    为确保设计与打印的一致性，设置器文本组件字体固定为 Alibaba Sans（西文）+ Alibaba PuHuiTi（中文）（内置字体，无需系统安装），不可修改；中文内容不支持斜体，输入中文时自动关闭斜体。
+    为确保设计与打印一致，文本组件字体固定为 Alibaba Sans（西文）+ Alibaba PuHuiTi（中文），内置字体无需安装，不可修改；中文不支持斜体。
   </div>
 </template>
 

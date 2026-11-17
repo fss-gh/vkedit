@@ -23,6 +23,35 @@ export type PrintDataItem = Record<string, string | number | boolean | null | un
 /** 打印传输方式：pdf = 浏览器生成 PDF 后发送；svg = 逐条发送 SVG，由打印服务端渲染 PDF */
 export type PrintTransport = 'pdf' | 'svg'
 
+/**
+ * 宫格打印配置：将同一个 vkedit JSON 模板在一页纸上按行列排列多份。
+ * 行/列间距单位为毫米（mm）。
+ */
+export interface GridPrintOptions {
+  /** 每页行数，至少 1 */
+  rows: number
+  /** 每页列数，至少 1 */
+  cols: number
+  /** 行间距（mm），默认 0 */
+  rowGapMM?: number
+  /** 列间距（mm），默认 0 */
+  colGapMM?: number
+  /** 四周统一页边距（mm），默认 0；可被下方单独页边距覆盖 */
+  marginMM?: number
+  /** 左侧页边距（mm），默认取 marginMM 或 0 */
+  marginLeftMM?: number
+  /** 右侧页边距（mm），默认取 marginMM 或 0 */
+  marginRightMM?: number
+  /** 顶部页边距（mm），默认取 marginMM 或 0 */
+  marginTopMM?: number
+  /** 底部页边距（mm），默认取 marginMM 或 0 */
+  marginBottomMM?: number
+  /** 可选：整页纸张宽度（mm）；不传时按页边距 + cols * 模板宽 + 列间距自动计算 */
+  pageWidthMM?: number
+  /** 可选：整页纸张高度（mm）；不传时按页边距 + rows * 模板高 + 行间距自动计算 */
+  pageHeightMM?: number
+}
+
 interface PrintTemplateJson {
   state?: {
     width?: unknown
@@ -100,7 +129,62 @@ function createElements(
     elements.push(element)
   }
 
-  return elements
+  // 业务打印必须按 zIndex 升序输出，否则最后添加并置底的背景元素会盖住前面内容
+  return elements.sort((a, b) => a.zIndex - b.zIndex)
+}
+
+function cloneJson<T>(value: T): T {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value)
+  }
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+/**
+ * 生成一页宫格打印的 SVG：
+ * 将模板元素分别复制到 rows * cols 的格子中，并按数据项填充 displayName。
+ * 每个格子宽高等于模板 state.width / state.height，格子间距通过 offset 控制。
+ */
+async function createGridPageSvg(
+  data: PrintDataItem[],
+  templateElements: Array<Record<string, unknown>>,
+  host: EditorHost,
+  rows: number,
+  cols: number,
+  cardWidthPx: number,
+  cardHeightPx: number,
+  rowGapPx: number,
+  colGapPx: number,
+  marginLeftPx: number,
+  marginTopPx: number,
+  dpm: number,
+  pageWidthPx: number,
+  pageHeightPx: number,
+): Promise<string> {
+  const gridJsonElements: Array<Record<string, unknown>> = []
+
+  for (let index = 0; index < data.length; index++) {
+    const rowIndex = Math.floor(index / cols)
+    const colIndex = index % cols
+    const offsetXPx = marginLeftPx + colIndex * (cardWidthPx + colGapPx)
+    const offsetYPx = marginTopPx + rowIndex * (cardHeightPx + rowGapPx)
+
+    const cellElements = templateElements.map((element) => cloneJson(element))
+    fillElementsByDataItem(cellElements, data[index])
+
+    for (const element of cellElements) {
+      // 每个格子内的元素需要独立 id，避免 SVG clipPath/image id 重复导致 PDF 渲染异常
+      const baseId = typeof element.id === 'string' && element.id ? element.id : `grid-el-${index}`
+      element.id = `${baseId}-g${index}`
+      element.xmm = (Number(element.xmm) || 0) + offsetXPx / dpm
+      element.ymm = (Number(element.ymm) || 0) + offsetYPx / dpm
+    }
+
+    gridJsonElements.push(...cellElements)
+  }
+
+  const elements = createElements(gridJsonElements, host)
+  return buildSvgString(elements, pageWidthPx, pageHeightPx)
 }
 
 export interface PrintServicePayload {
@@ -305,12 +389,16 @@ function printPdfByBrowser(blob: Blob): void {
  * 会改为逐条把 SVG（base64）发送到打印服务端，由服务端渲染 PDF 后打印，
  * 浏览器侧不再生成 PDF。
  *
+ * 传入 grid 参数时开启宫格打印：每页按 rows * cols 排列模板副本，每个格子填充一条
+ * 数据，行/列间距使用毫米；宫格打印仅支持 pdf 传输（浏览器打印或打印接口）。
+ *
  * @param data 打印数据数组，每个数据项以元素 displayName 作为绑定 key
  * @param json vkedit 导出的 JSON 字符串
  * @param printerAddress 打印机通讯服务地址；为空时使用浏览器打印
  * @param pdfOptions PDF 字体等导出选项；pdf 模式用于本地生成 PDF，svg 模式字体固定为 Alibaba Sans + Alibaba PuHuiTi，不依赖此参数
  * @param printerName 打印机名称，仅在 printerAddress 非空时发送到打印服务
- * @param transport 打印传输方式：'pdf'（默认）或 'svg'
+ * @param transport 打印传输方式：'pdf'（默认）或 'svg'；宫格打印仅支持 'pdf'
+ * @param grid 宫格打印配置（rows/cols/rowGapMM/colGapMM），不传时保持逐条一页
  * @returns 生成的 PDF Blob；SVG 传输模式不生成本地 PDF，返回 null
  */
 export async function printBusinessData(
@@ -320,6 +408,7 @@ export async function printBusinessData(
   pdfOptions?: CreatePdfOptions,
   printerName?: string,
   transport: PrintTransport = 'pdf',
+  grid?: GridPrintOptions,
 ): Promise<Blob | null> {
   if (!Array.isArray(data)) {
     throw new Error('打印数据必须是数组')
@@ -332,33 +421,112 @@ export async function printBusinessData(
   const width = Number(state.width) || 400
   const height = Number(state.height) || 400
   const dpm = Number(state.dpm) || 8
-  const mediaWidth = Number(state.wmm) || width / dpm
-  const mediaHeight = Number(state.hmm) || height / dpm
+  let mediaWidth = Number(state.wmm) || width / dpm
+  let mediaHeight = Number(state.hmm) || height / dpm
 
   // 仅用于构建元素实例的宿主上下文，打印渲染只需 dpm 换算像素
   const printHost = { status: { dpm } } as unknown as EditorHost
 
+  const gridEnabled = Boolean(grid)
+  if (gridEnabled && transport === 'svg') {
+    throw new Error('宫格打印仅支持 pdf 传输模式（浏览器打印或打印接口）')
+  }
+
   const svgMode = transport === 'svg' && Boolean(printerAddress)
   const pdfPages: PdfSvgPage[] = []
 
-  for (let index = 0; index < data.length; index++) {
-    // 深拷贝当前模板 elements，避免数据串页
-    const pageJsonElements = elements.map((element) => ({ ...element }))
-    fillElementsByDataItem(pageJsonElements, data[index])
+  if (gridEnabled) {
+    const rows = Math.floor(Number(grid?.rows))
+    const cols = Math.floor(Number(grid?.cols))
+    const rowGapMM = Number(grid?.rowGapMM ?? 0) || 0
+    const colGapMM = Number(grid?.colGapMM ?? 0) || 0
+    const defaultMarginMM = Number(grid?.marginMM ?? 0) || 0
+    const marginLeftMM = Number(grid?.marginLeftMM ?? defaultMarginMM) || 0
+    const marginRightMM = Number(grid?.marginRightMM ?? defaultMarginMM) || 0
+    const marginTopMM = Number(grid?.marginTopMM ?? defaultMarginMM) || 0
+    const marginBottomMM = Number(grid?.marginBottomMM ?? defaultMarginMM) || 0
 
-    const pageElements = createElements(pageJsonElements, printHost)
-    const svg = await buildSvgString(pageElements, width, height)
+    if (!Number.isFinite(rows) || !Number.isFinite(cols) || rows < 1 || cols < 1) {
+      throw new Error('宫格打印 rows/cols 必须大于等于 1')
+    }
+    if (
+      !Number.isFinite(rowGapMM) ||
+      !Number.isFinite(colGapMM) ||
+      !Number.isFinite(marginLeftMM) ||
+      !Number.isFinite(marginRightMM) ||
+      !Number.isFinite(marginTopMM) ||
+      !Number.isFinite(marginBottomMM) ||
+      rowGapMM < 0 ||
+      colGapMM < 0 ||
+      marginLeftMM < 0 ||
+      marginRightMM < 0 ||
+      marginTopMM < 0 ||
+      marginBottomMM < 0
+    ) {
+      throw new Error('宫格打印行/列间距与页边距不能为负数')
+    }
 
-    if (svgMode && printerAddress) {
-      // 逐条发送 SVG，交给打印服务端渲染 PDF 并打印
-      await sendSvgToPrinter(svg, printerAddress, {
-        printer: printerName,
-        copies: 1,
-        mediaWidth,
-        mediaHeight,
+    const capacity = rows * cols
+    const computedPageWidthPx =
+      marginLeftMM * dpm + cols * width + (cols - 1) * colGapMM * dpm + marginRightMM * dpm
+    const computedPageHeightPx =
+      marginTopMM * dpm + rows * height + (rows - 1) * rowGapMM * dpm + marginBottomMM * dpm
+    const pageWidthMM =
+      grid?.pageWidthMM != null ? Number(grid.pageWidthMM) : computedPageWidthPx / dpm
+    const pageHeightMM =
+      grid?.pageHeightMM != null ? Number(grid.pageHeightMM) : computedPageHeightPx / dpm
+    if (!Number.isFinite(pageWidthMM) || !Number.isFinite(pageHeightMM) || pageWidthMM <= 0 || pageHeightMM <= 0) {
+      throw new Error('宫格打印纸张宽高必须大于 0')
+    }
+    const pageWidthPx = pageWidthMM * dpm
+    const pageHeightPx = pageHeightMM * dpm
+    mediaWidth = pageWidthMM
+    mediaHeight = pageHeightMM
+
+    for (let start = 0; start < data.length; start += capacity) {
+      const chunk = data.slice(start, start + capacity)
+      const svg = await createGridPageSvg(
+        chunk,
+        elements,
+        printHost,
+        rows,
+        cols,
+        width,
+        height,
+        rowGapMM * dpm,
+        colGapMM * dpm,
+        marginLeftMM * dpm,
+        marginTopMM * dpm,
+        dpm,
+        pageWidthPx,
+        pageHeightPx,
+      )
+      pdfPages.push({
+        svg,
+        width: pageWidthPx,
+        height: pageHeightPx,
       })
-    } else {
-      pdfPages.push({ svg, width, height })
+    }
+  } else {
+    for (let index = 0; index < data.length; index++) {
+      // 深拷贝当前模板 elements，避免数据串页
+      const pageJsonElements = elements.map((element) => ({ ...element }))
+      fillElementsByDataItem(pageJsonElements, data[index])
+
+      const pageElements = createElements(pageJsonElements, printHost)
+      const svg = await buildSvgString(pageElements, width, height)
+
+      if (svgMode && printerAddress) {
+        // 逐条发送 SVG，交给打印服务端渲染 PDF 并打印
+        await sendSvgToPrinter(svg, printerAddress, {
+          printer: printerName,
+          copies: 1,
+          mediaWidth,
+          mediaHeight,
+        })
+      } else {
+        pdfPages.push({ svg, width, height })
+      }
     }
   }
 

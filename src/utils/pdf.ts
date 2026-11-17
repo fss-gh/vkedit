@@ -281,9 +281,9 @@ function containsPureAsciiText(svg: string): boolean {
 
 /**
  * 将 SVG 调整为 svg2pdf 可正确还原的形态：
- * 1. svg2pdf 不支持 dominant-baseline="text-before-edge"，会按 alphabetic 基线渲染导致文本上移，
- *    这里统一替换为它支持的 "text-top"。
- * 2. 为文本注入已注册的内置字体：中文使用 Alibaba PuHuiTi，西文使用 Alibaba Sans，避免乱码或字体缺失。
+ * 文本基线由 SVG 导出统一使用 alphabetic（浏览器 SVG、PDF、打印接口共用同一套语义），
+ * 这里不再做 PDF 专属的 baseline 转换，避免文本上下偏移。
+ * 仅为文本注入已注册的内置字体：中文使用 Alibaba PuHuiTi，西文使用 Alibaba Sans，避免乱码或字体缺失。
  */
 function prepareSvgElementForPdf(
   svgElement: SVGSVGElement,
@@ -293,12 +293,6 @@ function prepareSvgElementForPdf(
   const textNodes = svgElement.querySelectorAll<SVGElement>('text, tspan')
 
   textNodes.forEach((node) => {
-    if (node.getAttribute('dominant-baseline') === 'text-before-edge') {
-      // svg2pdf 不读取 dominant-baseline，需要通过 alignment-baseline 传递文本顶部对齐信息
-      node.setAttribute('dominant-baseline', 'text-top')
-      node.setAttribute('alignment-baseline', 'text-top')
-    }
-
     const text = node.textContent || ''
     const isNonAscii = /[^\x00-\x7F]/.test(text)
     const fontFamily = isNonAscii ? cjkFontFamily : latinFontFamily || cjkFontFamily

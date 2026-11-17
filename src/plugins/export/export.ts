@@ -238,7 +238,13 @@ export class ExportPlugin extends BasePlugin {
     if (!svg) return
 
     const pdf = await createPdfFromSvgPages(
-      [{ svg, width: hostState.width, height: hostState.height }],
+      [
+        {
+          svg,
+          width: hostState.width,
+          height: hostState.height,
+        },
+      ],
       pdfOptions,
     )
     pdf.save(`vkedit-${Date.now()}.pdf`)
@@ -251,10 +257,10 @@ export class ExportPlugin extends BasePlugin {
   ): string {
     const hostState = this.host?.status
     if (!hostState) return ''
-    // 先获取到所以元素
+    // 先获取到所以元素（按 zIndex 升序，保证背景色块在底层）
     const elementsPlugin = this.host?.getPlugin('graphic-registry-plugin') as GraphicRegistryPlugin
     if (!elementsPlugin) return ''
-    const elements = elementsPlugin.getAllElements()
+    const elements = elementsPlugin.getOrderedElements('ascending')
     // 创建一个临时的容器
     const tempContainer = document.createElement('div')
     tempContainer.id = 'temp-stage-container'

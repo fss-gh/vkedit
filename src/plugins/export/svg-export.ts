@@ -90,18 +90,61 @@ function createTextMeasureContext(element: TextElement): CanvasRenderingContext2
   return ctx
 }
 
+/**
+ * 计算与画布（Konva Text 非 legacy 渲染）一致的文本垂直度量：
+ * 画布使用 alphabetic 基线，首行基线位置为
+ * alignY + (ascent - descent) / 2 + lineHeightPx / 2。
+ * SVG 导出改用 alphabetic 基线后，浏览器 SVG、pdf 导出和打印接口
+ * 都会使用同一套基线语义，避免文本上下偏移。
+ */
+function getTextVerticalLayout(element: TextElement): {
+  lineHeightPx: number
+  firstLineBaselineY: number
+} {
+  const fontSize = element.fontSize
+  // Konva Text 默认 lineHeight 为 1
+  const lineHeightPx = fontSize
+  const ctx = createTextMeasureContext(element)
+
+  let ascent = fontSize * 0.8
+  let descent = fontSize * 0.2
+  if (ctx) {
+    const metrics = ctx.measureText('M')
+    const fontAscent =
+      typeof metrics.fontBoundingBoxAscent === 'number' ? metrics.fontBoundingBoxAscent : undefined
+    const actualAscent =
+      typeof metrics.actualBoundingBoxAscent === 'number' ? metrics.actualBoundingBoxAscent : undefined
+    const fontDescent =
+      typeof metrics.fontBoundingBoxDescent === 'number' ? metrics.fontBoundingBoxDescent : undefined
+    const actualDescent =
+      typeof metrics.actualBoundingBoxDescent === 'number' ? metrics.actualBoundingBoxDescent : undefined
+    if (fontAscent !== undefined) ascent = fontAscent
+    else if (actualAscent !== undefined) ascent = actualAscent
+    if (fontDescent !== undefined) descent = fontDescent
+    else if (actualDescent !== undefined) descent = actualDescent
+  }
+
+  const translateY = (ascent - descent) / 2 + lineHeightPx / 2
+  const lines = String(element.text ?? '').split('\n')
+  const lineCount = Math.max(1, lines.length)
+  const textBlockHeight = lineCount * lineHeightPx
+
+  let alignY = 0
+  if (element.verticalAlign === 'middle') {
+    alignY = Math.max(0, (element.height - textBlockHeight) / 2)
+  } else if (element.verticalAlign === 'bottom') {
+    alignY = Math.max(0, element.height - textBlockHeight)
+  }
+
+  return {
+    lineHeightPx,
+    firstLineBaselineY: alignY + translateY,
+  }
+}
+
 function renderText(element: TextElement): { defs: string; body: string } {
   const lines = String(element.text ?? '').split('\n')
-  const lineHeight = element.fontSize * 1.2
-  const lineCount = lines.length
-  const textBlockHeight = (lineCount - 1) * lineHeight + element.fontSize
-
-  let y = 0
-  if (element.verticalAlign === 'middle') {
-    y = Math.max(0, (element.height - textBlockHeight) / 2)
-  } else if (element.verticalAlign === 'bottom') {
-    y = Math.max(0, element.height - textBlockHeight)
-  }
+  const { lineHeightPx, firstLineBaselineY } = getTextVerticalLayout(element)
 
   const anchorMap: Record<TextElement['align'], string> = {
     left: 'start',
@@ -132,11 +175,11 @@ function renderText(element: TextElement): { defs: string; body: string } {
           } else if (element.align === 'right') {
             x = Math.max(0, element.width - lineWidth)
           }
-          const yLine = y + index * lineHeight
+          const yLine = firstLineBaselineY + index * lineHeightPx
           let cursorX = x
           return chars
             .map((char, charIndex) => {
-              const node = `<text x="${fmt(cursorX)}" y="${fmt(yLine)}" text-anchor="start" dominant-baseline="text-before-edge" ${fontAttrs} xml:space="preserve">${escapeXml(char)}</text>`
+              const node = `<text x="${fmt(cursorX)}" y="${fmt(yLine)}" text-anchor="start" ${fontAttrs} xml:space="preserve">${escapeXml(char)}</text>`
               cursorX += widths[charIndex] + letterSpacing
               return node
             })
@@ -150,13 +193,13 @@ function renderText(element: TextElement): { defs: string; body: string } {
 
   const tspans = lines
     .map((line, index) => {
-      const dy = index === 0 ? '0' : fmt(lineHeight)
+      const dy = index === 0 ? '0' : fmt(lineHeightPx)
       return `<tspan x="0" dy="${dy}">${escapeXml(line)}</tspan>`
     })
     .join('')
 
   const letterSpacingAttr = letterSpacing ? ` letter-spacing="${fmt(letterSpacing)}"` : ''
-  const text = `<text x="0" y="${fmt(y)}" dominant-baseline="text-before-edge" text-anchor="${textAnchor}" ${fontAttrs}${letterSpacingAttr} xml:space="preserve">${tspans}</text>`
+  const text = `<text x="0" y="${fmt(firstLineBaselineY)}" text-anchor="${textAnchor}" ${fontAttrs}${letterSpacingAttr} xml:space="preserve">${tspans}</text>`
 
   return { defs: '', body: wrapTransform(element, text) }
 }
@@ -221,8 +264,8 @@ function renderBarcode(element: BarcodeElement, href: string, canvasWidth: numbe
   let body = image
 
   if (element.displayValue && element.content) {
-    const textY = element.barcodeHeight + element.margin
-    body += `<text x="${fmt(canvasWidth / 2)}" y="${fmt(textY)}" dominant-baseline="text-before-edge" text-anchor="middle" font-size="${fmt(element.fontSize)}" font-family="OCR-B" font-weight="bold" fill="${element.foreground || '#000000'}">${escapeXml(element.content)}</text>`
+    const textY = element.barcodeHeight + element.margin + element.fontSize * 0.8
+    body += `<text x="${fmt(canvasWidth / 2)}" y="${fmt(textY)}" text-anchor="middle" font-size="${fmt(element.fontSize)}" font-family="OCR-B" font-weight="bold" fill="${element.foreground || '#000000'}">${escapeXml(element.content)}</text>`
   }
 
   return { defs: '', body: wrapTransform(element, body) }
@@ -259,8 +302,10 @@ export async function buildSvgString(
 ): Promise<string> {
   let defs = ''
   const bodyParts: string[] = []
+  // 统一按 zIndex 升序输出，避免“最后添加但已置底”的背景盖住内容
+  const orderedElements = [...elements].sort((a, b) => a.zIndex - b.zIndex)
 
-  for (const element of elements) {
+  for (const element of orderedElements) {
     if (!element.visible) continue
 
     let result: { defs: string; body: string } | null = null

@@ -74,7 +74,7 @@ const fontFaceCss = fontFaceConfigs
     return [
       '@font-face {',
       `  font-family: '${family}';`,
-      `  src: url("${url}") format('opentype');`,
+      `  src: url("${url}") format('truetype');`,
       `  font-weight: ${weight};`,
       `  font-style: ${style};`,
       '  font-display: swap;',

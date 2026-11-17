@@ -23,7 +23,7 @@
 - **矩形背景图片** - 支持 URL / data URL / 本地上传背景图，自动拉伸适配并支持清除
 - **文本排版** - 字体固定为 Alibaba Sans（西文）+ Alibaba PuHuiTi（中文）（不可修改，内置字体资源，无需系统安装），支持加粗、对齐、字间距等设置；中文内容不允许使用斜体，JSON 导入导出后属性不丢失
 - **二维码高级设置** - 支持纠错等级（L/M/Q/H）与中心图标（URL / data URL / 本地上传）
-- **业务打印** - 通过 `printBusinessData()` 将打印数据按 `displayName` 绑定填充文本/二维码/条码，逐条生成 PDF，支持浏览器打印预览，也支持通过 PrintBridge 兼容接口静默 PDF 打印（`POST /api/print`）
+- **业务打印** - 通过 `printBusinessData()` 将打印数据按 `displayName` 绑定填充文本/二维码/条码，逐条生成 PDF，支持浏览器打印预览，也支持通过 PrintBridge 兼容接口静默 PDF 打印（`POST /api/print`）；支持宫格打印：将同一模板按行列排列到一页纸上，并可设置行数、列数、行间距、列间距、页边距
 - **撤销/重做** - 基于命令模式，所有修改操作可逆
 - **导入/导出** - JSON 序列化、PNG/JPG 图片、PDF 文档、SVG 矢量图
 - **对齐与分布** - 左/右/上/下/居中对齐、水平/垂直均分
@@ -177,7 +177,7 @@ Content-Type: application/json
 - `pdf`：PDF 文件字节的 base64 编码，不包含 `data:application/pdf;base64,` 前缀；
 - `printer`：打印机名称；为空字符串时由服务端选择默认打印机；
 - `copies`：打印份数，当前固定为 `1`；
-- `mediaWidth` / `mediaHeight`：纸张尺寸（毫米），默认取模板 `state.wmm` / `state.hmm`，缺失时根据像素尺寸与 DPM 换算。
+- `mediaWidth` / `mediaHeight`：纸张尺寸（毫米），默认取模板 `state.wmm` / `state.hmm`，缺失时根据像素尺寸与 DPM 换算；宫格打印时按格子尺寸与间距自动计算，或使用 `GridPrintOptions.pageWidthMM` / `pageHeightMM` 指定。
 
 > 当使用 `transport: 'svg'` 时，`pdf` 字段为 **SVG 文件内容的 base64 编码**，由打印服务端解析并渲染成 PDF 后再打印。
 
@@ -210,6 +210,52 @@ await printBusinessData(
 > SVG 模式下，发送前 `sendSvgToPrinter` 会按文本内容替换 `font-family`：中文使用 **`Alibaba PuHuiTi`**，西文使用 **`Alibaba Sans`**，同时保留原有的 `font-weight` / `font-style`，由服务端按字体变体渲染。`pdfOptions` 中的字体参数不再影响 SVG 传输模式。
 >
 > 如果服务端使用 `svg2pdf_py`（svglib），请先在服务端安装并注册 Alibaba PuHuiTi、Alibaba Sans 及其 **Bold/Italic 等变体**，否则加粗/斜体可能无法生效。
+
+### 宫格打印
+
+`printBusinessData()` 支持将同一个 vkedit JSON 模板按行列排列到一页纸上，每个格子填充一条打印数据，适合标签、名片、小票等批量打印场景。
+
+```ts
+import { printBusinessData } from 'vkedit'
+
+await printBusinessData(
+  data,            // 每条数据对应一个格子
+  json,
+  printerAddress,  // 为空则浏览器打印；非空则发送到 PrintBridge 接口
+  undefined,
+  printerName,     // 可选
+  'pdf',           // 宫格打印仅支持 pdf 传输
+  {
+    rows: 3,
+    cols: 2,
+    rowGapMM: 2,
+    colGapMM: 2,
+    // marginMM: 5,              // 可选：四周统一页边距
+    // marginLeftMM: 5,          // 可选：单独设置各方向页边距，覆盖 marginMM
+    // marginRightMM: 5,
+    // marginTopMM: 5,
+    // marginBottomMM: 5,
+    // pageWidthMM: 210,         // 可选，不传则按下方规则自动计算
+    // pageHeightMM: 297,
+  },
+)
+```
+
+参数说明：
+
+- `rows` / `cols`：每页行数、列数，至少为 1。
+- `rowGapMM` / `colGapMM`：行间距、列间距，单位毫米，默认 0。
+- `marginMM`：四周统一的页边距（毫米），默认 0。
+- `marginLeftMM` / `marginRightMM` / `marginTopMM` / `marginBottomMM`：分别设置左、右、上、下页边距（毫米）；未设置时使用 `marginMM`，再未设置则为 0。
+- `pageWidthMM` / `pageHeightMM`：可选整页纸张尺寸（毫米）。不传时默认按以下公式自动计算：
+  - 页面宽 = `marginLeftMM + marginRightMM + cols * 模板宽 + (cols - 1) * colGapMM`
+  - 页面高 = `marginTopMM + marginBottomMM + rows * 模板高 + (rows - 1) * rowGapMM`
+
+规则：
+
+- 数据条数超过 `rows * cols` 时，自动分多页 PDF。
+- 宫格打印仅支持 `transport: 'pdf'`；如果传入 `grid` 且 `transport: 'svg'`，会抛出错误。
+- 生成的 PDF 行为与普通打印一致：`printerAddress` 为空时浏览器打印，否则以 base64 发送到 PrintBridge 打印接口。
 
 `printerAddress` 支持两种写法：
 
